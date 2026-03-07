@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Perfil</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="container">
+        <div class="card" style="margin-top: 50px;">
+            <h2 style="text-align: center;">Tu Perfil</h2>
+            <div style="text-align:center; margin-bottom: 20px;">
+                <img id="prev-img" src="../img/image.png" onerror="this.src='../img/image.png'" style="width:110px; height:110px; border-radius:50%; object-fit:cover; border: 3px solid var(--primary);">
+            </div>
+            
+            <label>Nombre Público:</label>
+            <input type="text" id="new-name">
+            
+            <label>Link de tu Foto (URL):</label>
+            <input type="text" id="new-photo" placeholder="https://ejemplo.com/tu-foto.jpg">
+            
+            <label>Descripción:</label>
+            <textarea id="new-desc" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"></textarea>
+            
+            <button onclick="save()" style="background:var(--secondary); color:white; margin-top:15px;">Guardar Cambios</button>
+            <button onclick="window.location.href='../index.html'" style="background:var(--dark); color:white; margin-top:10px;">Volver al Inicio</button>
+        </div>
+    </div>
+    <script type="module" src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="../particles-config.js"></script>
+</body>
+</html>

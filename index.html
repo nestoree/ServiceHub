@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServiceHub - App de Servicios</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="login-screen" class="container">
+        <div class="card">
+            <h2>Bienvenido</h2>
+            <p>Ingresa tus datos para continuar</p>
+            <input type="text" id="full-name" placeholder="Nombre y Apellido (Ej: Juan Pérez)">
+            <input type="email" id="email" placeholder="Correo electrónico">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button onclick="handleAuth()">Entrar / Registrarse</button>
+            <p id="auth-error" class="error"></p>
+        </div>
+    </div>
+
+    <div id="main-screen" class="container hidden">
+        <header>
+            <div class="user-info">
+                <h1>¡Hola, <span id="user-display"></span>!</h1>
+            </div>
+            <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+        </header>
+
+        <main>
+            <section class="publish-box">
+                <h3>Publicar un Servicio</h3>
+                <input type="text" id="service-name" placeholder="Nombre de tu empresa o servicio">
+                <input type="text" id="service-time" placeholder="Horario (Ej: L-V de 9 a 18h)">
+                <button onclick="uploadService()" class="btn-publish">Publicar Ahora</button>
+            </section>
+
+            <hr>
+
+            <section id="service-list">
+                </section>
+        </main>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

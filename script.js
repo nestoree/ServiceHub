@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, remove, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+// --- CONFIGURACIÓN ---
 const firebaseConfig = {
     apiKey: "AIzaSyDBbStIV1FTMfoGza12KoqstmBj_9sYpxo",
     authDomain: "slowcode-7596b.firebaseapp.com",
@@ -15,83 +16,79 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const IMG_DEFAULT = "img/image.png"; // Asegúrate de que esta ruta existe
+const IMG_DEFAULT = "img/image.png";
 
+let currentRecipient = null;
+
+// --- UTILIDADES ---
 function formatName(name) {
     if (!name) return "Usuario";
     const parts = name.trim().split(" ");
     return parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0];
 }
 
-onAuthStateChanged(auth, (user) => {
+// --- AUTENTICACIÓN Y ESTADO ---
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('main-screen').classList.remove('hidden');
-        document.getElementById('user-display').innerText = formatName(user.displayName);
+        document.getElementById('user-display').textContent = formatName(user.displayName);
         document.getElementById('user-avatar').src = user.photoURL || IMG_DEFAULT;
         
-        // Actualizar mis datos en la lista global de miembros al entrar
-        update(ref(db, `users/${user.uid}`), {
+        // Registro/Actualización de usuario en Directorio
+        const userRef = ref(db, `users/${user.uid}`);
+        await update(userRef, {
             name: user.displayName || "Usuario",
-            photo: user.photoURL || "",
-            lastSeen: Date.now() // Opcional: para saber cuándo entró
+            photo: user.photoURL || ""
         });
 
         loadServices();
-        loadAllMembers(); // Carga a todos los registrados
+        loadMembers();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('main-screen').classList.add('hidden');
     }
 });
 
-// NUEVA FUNCIÓN: Carga a TODOS los miembros registrados
-function loadAllMembers() {
-    const listUI = document.getElementById('suggested-users-list');
-    onValue(ref(db, 'users'), (snapshot) => {
-        listUI.innerHTML = '';
-        const data = snapshot.val();
-        if (data) {
-            Object.keys(data).forEach(uid => {
-                const u = data[uid];
-                // Saltamos nuestro propio perfil si queremos, o lo dejamos. 
-                // Aquí lo dejamos para que veas la lista completa.
-                const userPhoto = u.photo && u.photo !== "" ? u.photo : IMG_DEFAULT;
-                listUI.innerHTML += `
-                    <div class="user-item">
-                        <img src="${userPhoto}" onerror="this.src='${IMG_DEFAULT}'">
-                        <div class="user-item-info">
-                            <strong>${formatName(u.name)}</strong>
-                            <span>Miembro de ServiceHub</span>
-                        </div>
-                    </div>`;
-            });
-        }
-    });
-}
+window.handleAuth = async () => {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+    const name = document.getElementById('full-name').value;
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+        if(!name) return alert("Escribe tu nombre para crear cuenta");
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: name });
+        await set(ref(db, `users/${cred.user.uid}`), { name: name, photo: "" });
+        location.reload();
+    }
+};
 
-// Publicar Servicio
+window.logout = () => signOut(auth);
+
+// --- GESTIÓN DE SERVICIOS (PROTECCIÓN XSS) ---
 window.uploadService = () => {
-    const sName = document.getElementById('service-name').value;
-    const sTime = document.getElementById('service-time').value;
-    if (sName && sTime) {
+    const n = document.getElementById('service-name').value;
+    const t = document.getElementById('service-time').value;
+    if (n && t) {
         push(ref(db, 'services'), {
-            name: sName,
-            time: sTime,
+            name: n,
+            time: t,
             ownerName: formatName(auth.currentUser.displayName),
             ownerPhoto: auth.currentUser.photoURL || "",
-            uid: auth.currentUser.uid
+            uid: auth.currentUser.uid,
+            timestamp: Date.now()
         });
         document.getElementById('service-name').value = '';
         document.getElementById('service-time').value = '';
     }
 };
 
-// Cargar Servicios
 function loadServices() {
     onValue(ref(db, 'services'), (snapshot) => {
         const list = document.getElementById('service-list');
-        list.innerHTML = ''; // Limpiamos el contenedor
+        list.innerHTML = ''; 
         
         const title = document.createElement('h3');
         title.textContent = "Servicios de la Comunidad";
@@ -102,56 +99,114 @@ function loadServices() {
         if (data) {
             Object.keys(data).reverse().forEach(key => {
                 const s = data[key];
-                const pic = s.ownerPhoto || IMG_DEFAULT;
-
-                // Creamos los elementos uno a uno para evitar XSS
                 const card = document.createElement('div');
                 card.className = 'service-card';
-                card.style.display = 'flex';
-                card.style.gap = '12px';
 
+                // Imagen
                 const img = document.createElement('img');
-                img.src = pic;
-                img.style.width = '45px';
-                img.style.height = '45px';
-                img.style.borderRadius = '50%';
+                img.className = 'service-avatar';
+                img.src = s.ownerPhoto || IMG_DEFAULT;
                 img.onerror = () => { img.src = IMG_DEFAULT; };
 
-                const infoDiv = document.createElement('div');
-                
-                const name = document.createElement('strong');
-                name.textContent = s.name; // <--- SEGURO: No interpreta HTML
+                // Contenido
+                const info = document.createElement('div');
+                info.className = 'service-info';
 
-                const time = document.createElement('small');
-                time.style.display = 'block';
-                time.textContent = s.time; // <--- SEGURO
+                const titleS = document.createElement('h4');
+                titleS.textContent = s.name;
 
-                const author = document.createElement('span');
-                author.style.fontSize = '11px';
-                author.style.color = 'var(--primary)';
-                author.textContent = `Publicado por ${s.ownerName}`; // <--- SEGURO
+                const timeS = document.createElement('p');
+                timeS.textContent = `📅 ${s.time}`;
 
-                infoDiv.append(name, document.createElement('br'), time, author);
-                card.append(img, infoDiv);
+                const authorS = document.createElement('span');
+                authorS.className = 'author';
+                authorS.textContent = `Publicado por ${s.ownerName}`;
+
+                info.append(titleS, timeS, authorS);
+
+                // Botón Contactar (XSS Safe)
+                if (s.uid !== auth.currentUser.uid) {
+                    const btn = document.createElement('button');
+                    btn.textContent = "💬 Contactar";
+                    btn.className = "btn-contact";
+                    btn.onclick = () => openModal(s.uid, s.ownerName, s.name);
+                    info.appendChild(btn);
+                } else {
+                    const btnDel = document.createElement('button');
+                    btnDel.textContent = "Eliminar";
+                    btnDel.style.background = "var(--danger)";
+                    btnDel.onclick = () => { if(confirm("¿Borrar?")) remove(ref(db, `services/${key}`)); };
+                    info.appendChild(btnDel);
+                }
+
+                card.append(img, info);
                 list.appendChild(card);
             });
         }
     });
 }
 
-window.handleAuth = async () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const name = document.getElementById('full-name').value;
+// --- MENSAJERÍA (MODAL) ---
+window.openModal = (uid, name, service) => {
+    currentRecipient = { uid, name };
+    document.getElementById('msg-recipient-name').textContent = name;
+    document.getElementById('msg-service-title').textContent = service;
+    document.getElementById('message-modal').classList.remove('hidden');
+};
+
+window.closeModal = () => {
+    document.getElementById('message-modal').classList.add('hidden');
+    document.getElementById('msg-text').value = '';
+};
+
+window.sendMessage = async () => {
+    const text = document.getElementById('msg-text').value;
+    if (!text.trim()) return alert("Escribe un mensaje");
+
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await push(ref(db, `messages/${currentRecipient.uid}`), {
+            fromName: auth.currentUser.displayName,
+            fromUid: auth.currentUser.uid,
+            message: text,
+            service: document.getElementById('msg-service-title').textContent,
+            timestamp: Date.now()
+        });
+        alert("Mensaje enviado");
+        closeModal();
     } catch (e) {
-        if(!name) return alert("Escribe tu nombre para el registro");
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(cred.user, { displayName: name });
-        await set(ref(db, `users/${cred.user.uid}`), { name: name, photo: "" });
-        location.reload();
+        alert("Error: " + e.message);
     }
 };
-window.logout = () => signOut(auth);
 
+// --- DIRECTORIO DE MIEMBROS ---
+function loadMembers() {
+    const listUI = document.getElementById('suggested-users-list');
+    onValue(ref(db, 'users'), (snapshot) => {
+        listUI.innerHTML = '';
+        const data = snapshot.val();
+        if (data) {
+            Object.keys(data).forEach(uid => {
+                const u = data[uid];
+                const item = document.createElement('div');
+                item.className = 'user-item';
+
+                const img = document.createElement('img');
+                img.src = u.photo || IMG_DEFAULT;
+                img.onerror = () => { img.src = IMG_DEFAULT; };
+
+                const info = document.createElement('div');
+                info.className = 'user-item-info';
+                
+                const name = document.createElement('strong');
+                name.textContent = formatName(u.name);
+                
+                const status = document.createElement('span');
+                status.textContent = "Miembro";
+
+                info.append(name, status);
+                item.append(img, info);
+                listUI.appendChild(item);
+            });
+        }
+    });
+}

@@ -58,11 +58,21 @@
             </aside>
         </div>
     </div>
+    
+    <div id="message-modal" class="modal hidden">
+        <div class="card modal-content">
+            <h3>Enviar mensaje a <span id="msg-recipient-name"></span></h3>
+            <p>Asunto: <strong id="msg-service-title"></strong></p>
+            <textarea id="msg-text" placeholder="Escribe tu propuesta o duda aquí..." rows="4"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="sendMessage()" class="btn-publish">Enviar Mensaje</button>
+                <button onclick="closeModal()" style="background:var(--dark)">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="particles-config.js"></script>
 </body>
 </html>
-</html>
-

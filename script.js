@@ -91,21 +91,49 @@ window.uploadService = () => {
 function loadServices() {
     onValue(ref(db, 'services'), (snapshot) => {
         const list = document.getElementById('service-list');
-        list.innerHTML = '<h3 style="color:white">Anuncios Recientes</h3>';
+        list.innerHTML = ''; // Limpiamos el contenedor
+        
+        const title = document.createElement('h3');
+        title.textContent = "Servicios de la Comunidad";
+        title.style.color = "white";
+        list.appendChild(title);
+
         const data = snapshot.val();
         if (data) {
             Object.keys(data).reverse().forEach(key => {
                 const s = data[key];
-                const authorImg = s.ownerPhoto || IMG_DEFAULT;
-                list.innerHTML += `
-                    <div class="service-card">
-                        <img src="${authorImg}" class="service-avatar" onerror="this.src='${IMG_DEFAULT}'">
-                        <div>
-                            <strong>${s.name}</strong><br>
-                            <small>${s.time}</small><br>
-                            <span style="font-size:11px; color:var(--primary)">Publicado por ${s.ownerName}</span>
-                        </div>
-                    </div>`;
+                const pic = s.ownerPhoto || IMG_DEFAULT;
+
+                // Creamos los elementos uno a uno para evitar XSS
+                const card = document.createElement('div');
+                card.className = 'service-card';
+                card.style.display = 'flex';
+                card.style.gap = '12px';
+
+                const img = document.createElement('img');
+                img.src = pic;
+                img.style.width = '45px';
+                img.style.height = '45px';
+                img.style.borderRadius = '50%';
+                img.onerror = () => { img.src = IMG_DEFAULT; };
+
+                const infoDiv = document.createElement('div');
+                
+                const name = document.createElement('strong');
+                name.textContent = s.name; // <--- SEGURO: No interpreta HTML
+
+                const time = document.createElement('small');
+                time.style.display = 'block';
+                time.textContent = s.time; // <--- SEGURO
+
+                const author = document.createElement('span');
+                author.style.fontSize = '11px';
+                author.style.color = 'var(--primary)';
+                author.textContent = `Publicado por ${s.ownerName}`; // <--- SEGURO
+
+                infoDiv.append(name, document.createElement('br'), time, author);
+                card.append(img, infoDiv);
+                list.appendChild(card);
             });
         }
     });
@@ -126,3 +154,4 @@ window.handleAuth = async () => {
     }
 };
 window.logout = () => signOut(auth);
+

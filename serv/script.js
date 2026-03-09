@@ -16,47 +16,66 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-let selectedTime = "";
+// AHORA ES UN ARRAY PARA GUARDAR VARIAS HORAS
+let selectedTimes = []; 
 
-// 1. Generar botones de 09:00 a 20:00
+// 1. Generar botones
 const timeGrid = document.getElementById('time-grid');
 for (let h = 9; h <= 20; h++) {
     const timeStr = `${h.toString().padStart(2, '0')}:00`;
     const btn = document.createElement('button');
     btn.textContent = timeStr;
     btn.className = 'time-btn';
-    btn.onclick = () => selectTime(timeStr, btn);
+    btn.onclick = () => toggleTime(timeStr, btn);
     timeGrid.appendChild(btn);
 }
 
-function selectTime(time, element) {
-    // Quitar clase active de otros
-    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-    // Activar este
-    element.classList.add('active');
-    selectedTime = time;
-    document.getElementById('display-time').textContent = time;
+// 2. Lógica para SELECCIÓN MÚLTIPLE
+function toggleTime(time, element) {
+    element.classList.toggle('active'); // Alterna el color visualmente
+    
+    if (selectedTimes.includes(time)) {
+        // Si ya estaba, lo quitamos
+        selectedTimes = selectedTimes.filter(t => t !== time);
+    } else {
+        // Si no estaba, lo añadimos
+        selectedTimes.push(time);
+    }
+    
+    // Ordenamos las horas para que se vean bonitas (ej: 09:00, 10:00, 15:00)
+    selectedTimes.sort();
+    
+    document.getElementById('display-time').textContent = selectedTimes.length > 0 ? selectedTimes.join(', ') : 'Ninguna';
 }
 
-// 2. Lógica de Publicación
+// 3. Lógica de Publicación
 document.getElementById('btn-post').onclick = async () => {
     const user = auth.currentUser;
     const name = document.getElementById('service-name').value.trim();
+    let imgUrl = document.getElementById('service-image').value.trim();
 
-    if (!user) return alert("Debes estar logueado");
-    if (!name || !selectedTime) return alert("Completa el nombre y selecciona una hora");
+    if (!user) return alert("Debes estar logueado para publicar.");
+    if (!name) return alert("Por favor, escribe el nombre del servicio.");
+    if (selectedTimes.length === 0) return alert("Debes seleccionar al menos una hora del horario.");
+
+    // LÓGICA DE LA IMAGEN POR DEFECTO
+    // Nota: ponemos "../img/serv.png" porque estamos dentro de la carpeta /serv
+    if (!imgUrl) {
+        imgUrl = "../img/serv.png"; 
+    }
 
     try {
         await push(ref(db, 'services'), {
-            name: name, // Automáticamente protegido si usamos textContent al leer
-            time: selectedTime,
+            name: name,
+            time: selectedTimes.join(', '), // Guarda "09:00, 10:00, 14:00"
+            serviceImage: imgUrl,           // NUEVO: Guarda la imagen del servicio
             ownerName: user.displayName || "Usuario",
             ownerPhoto: user.photoURL || "",
             uid: user.uid,
             timestamp: Date.now()
         });
-        alert("¡Servicio publicado!");
-        window.location.href = "../index.html"; // Redirigir al inicio
+        alert("¡Servicio publicado con éxito!");
+        window.location.href = "../index.html";
     } catch (e) {
         alert("Error al publicar: " + e.message);
     }

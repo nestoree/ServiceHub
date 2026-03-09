@@ -26,32 +26,48 @@ function loadMyMessages(myUid) {
     onValue(ref(db, `messages/${myUid}`), (snapshot) => {
         list.innerHTML = '';
         const data = snapshot.val();
+        
         if (!data) {
-            list.innerHTML = '<p style="color:white; text-align:center;">No tienes mensajes nuevos.</p>';
+            list.innerHTML = '<div style="text-align:center; color:white; padding:50px;"><h3>Tu buzón está limpio</h3><p>No tienes mensajes ni chats pendientes.</p></div>';
             return;
         }
 
-        Object.keys(data).reverse().forEach(key => {
+        Object.keys(data).forEach(key => {
             const m = data[key];
             const card = document.createElement('div');
             card.className = 'message-card';
 
-            card.innerHTML = `
-                <div class="msg-header">
-                    <span class="msg-sender">${m.fromName}</span>
-                    <span class="msg-service">${m.service}</span>
-                </div>
-                <div class="msg-body">${m.message}</div>
-                <div class="btn-group">
-                    <button class="btn-chat" onclick="window.location.href='chat.html?uid=${m.fromUid}&name=${encodeURIComponent(m.fromName)}'">💬 Responder / Chat</button>
-                    <button class="btn-delete" id="del-${key}">🗑️ Borrar</button>
-                </div>
-            `;
-            list.appendChild(card);
+            // Construcción segura de la tarjeta
+            const header = document.createElement('div');
+            header.className = 'msg-header';
+            header.innerHTML = `<span class="msg-sender">${m.fromName}</span><span class="msg-service">${m.service}</span>`;
 
-            document.getElementById(`del-${key}`).onclick = () => {
-                if(confirm("¿Eliminar este mensaje?")) remove(ref(db, `messages/${myUid}/${key}`));
+            const body = document.createElement('div');
+            body.className = 'msg-body';
+            body.textContent = m.message;
+
+            const actions = document.createElement('div');
+            actions.className = 'btn-group';
+
+            const btnChat = document.createElement('button');
+            btnChat.className = 'btn-chat';
+            btnChat.textContent = "💬 Abrir Chat";
+            btnChat.onclick = () => {
+                window.location.href = `chat.html?uid=${m.fromUid}&name=${encodeURIComponent(m.fromName)}`;
             };
+
+            const btnDel = document.createElement('button');
+            btnDel.className = 'btn-delete';
+            btnDel.textContent = "🗑️ Borrar";
+            btnDel.onclick = () => {
+                if(confirm("¿Eliminar esta conversación del buzón?")) {
+                    remove(ref(db, `messages/${myUid}/${key}`));
+                }
+            };
+
+            actions.append(btnChat, btnDel);
+            card.append(header, body, actions);
+            list.appendChild(card);
         });
     });
 }

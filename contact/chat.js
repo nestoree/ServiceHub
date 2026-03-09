@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDBbStIV1FTMfoGza12KoqstmBj_9sYpxo",
@@ -19,6 +19,7 @@ const db = getDatabase(app);
 const urlParams = new URLSearchParams(window.location.search);
 const otherUid = urlParams.get('uid');
 const otherName = urlParams.get('name');
+
 document.getElementById('chat-partner-name').textContent = otherName || "Chat";
 
 let chatId = null;
@@ -27,9 +28,11 @@ let myUid = null;
 onAuthStateChanged(auth, (user) => {
     if (user && otherUid) {
         myUid = user.uid;
-        // Creamos una ID de sala única para ambos usuarios
+        // ID de sala única (alfabético para que ambos entren a la misma)
         chatId = myUid < otherUid ? `${myUid}_${otherUid}` : `${otherUid}_${myUid}`;
         loadMessages();
+    } else if (!user) {
+        window.location.href = "../index.html";
     }
 });
 
@@ -44,8 +47,17 @@ function loadMessages() {
                 bubble.className = `chat-bubble ${m.senderUid === myUid ? 'me' : 'them'}`;
                 
                 const time = new Date(m.timestamp);
-                bubble.innerHTML = `<div>${m.text}</div><div class="chat-time">${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}</div>`;
+                const timeStr = `${time.getHours()}:${time.getMinutes().toString().padStart(2,'0')}`;
                 
+                // Usamos textContent para el mensaje (Seguridad XSS)
+                const textNode = document.createElement('div');
+                textNode.textContent = m.text;
+                
+                const timeNode = document.createElement('div');
+                timeNode.className = 'chat-time';
+                timeNode.textContent = timeStr;
+
+                bubble.append(textNode, timeNode);
                 history.appendChild(bubble);
             });
             history.scrollTop = history.scrollHeight;
@@ -53,18 +65,32 @@ function loadMessages() {
     });
 }
 
-document.getElementById('btn-send-chat').onclick = () => sendMessage();
-document.getElementById('chat-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
-
 async function sendMessage() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (text && chatId) {
-        input.value = '';
+    
+    if (text && chatId && otherUid) {
+        input.value = ''; // Limpiar UI rápido
+        const now = Date.now();
+
+        // 1. Guardar en la sala de chat
         await push(ref(db, `chats/${chatId}`), {
             text: text,
             senderUid: myUid,
-            timestamp: Date.now()
+            timestamp: now
+        });
+
+        // 2. Notificar al receptor (Actualiza su buzón de entrada)
+        // Usamos la ID del emisor como clave para no duplicar tarjetas de la misma persona
+        await set(ref(db, `messages/${otherUid}/${myUid}`), {
+            fromName: auth.currentUser.displayName || "Usuario",
+            fromUid: myUid,
+            message: "Nuevo mensaje de chat: " + text.substring(0, 30) + "...",
+            service: "Chat en vivo",
+            timestamp: now
         });
     }
 }
+
+document.getElementById('btn-send-chat').onclick = sendMessage;
+document.getElementById('chat-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };

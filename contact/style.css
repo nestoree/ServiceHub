@@ -1,72 +1,46 @@
+/* Estilos Generales */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background-color: #1a252f; min-height: 100vh; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
+.back-link { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
 
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #1a252f;
-    min-height: 100vh;
-    padding: 20px;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-}
-
-.back-link { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; font-size: 15px; }
-.back-link:hover { text-decoration: underline; }
-
+/* Cabecera */
 .header-box { text-align: center; margin-bottom: 30px; color: white; }
-.header-box h2 { font-size: 28px; margin-bottom: 5px; }
-.header-box p { color: #bdc3c7; }
+.header-box h2 { font-size: 28px; }
 
-/* Tarjetas de Mensaje */
+/* Tarjetas de Mensaje en el Buzón */
 .message-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.msg-sender { font-weight: bold; color: #2c3e50; }
+.msg-service { font-size: 11px; background: #e8f4f8; color: #3498db; padding: 4px 8px; border-radius: 10px; }
+.msg-body { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; color: #444; }
+
+/* Botones */
+.btn-group { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-chat { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-delete { background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+
+/* --- ESTILOS DE LA VENTANA DE CHAT (chat.html) --- */
+.chat-container {
+    background: #e5ddd5;
+    height: 80vh;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
-
-.msg-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-.msg-sender { font-weight: bold; color: #2c3e50; font-size: 16px; }
-.msg-service { font-size: 12px; color: #3498db; background: #e8f4f8; padding: 4px 10px; border-radius: 12px; font-weight: bold;}
-.msg-date { font-size: 11px; color: #888; }
-
-.msg-body {
-    font-size: 15px;
-    color: #444;
-    white-space: pre-wrap; /* Respeta los saltos de línea que haya escrito el usuario */
-    line-height: 1.5;
-    background: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    border-left: 4px solid #2ecc71;
-}
-
-.btn-delete {
-    align-self: flex-end;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 13px;
-    transition: 0.2s;
-}
-
-.btn-delete:hover { background: #c0392b; }
+.chat-header { background: #2c3e50; color: white; padding: 15px; display: flex; align-items: center; gap: 15px; }
+.chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.chat-bubble { max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 14px; line-height: 1.4; position: relative; }
+.chat-bubble.me { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
+.chat-bubble.them { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
+.chat-time { font-size: 9px; color: #999; text-align: right; margin-top: 4px; }
+.chat-input-area { background: #f0f0f0; padding: 15px; display: flex; gap: 10px; }
+#chat-input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #ccc; outline: none; }

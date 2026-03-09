@@ -20,10 +20,16 @@
             </div>
 
             <div class="input-group">
-                <label>Selecciona el horario disponible:</label>
+                <label>Enlace de la imagen (Opcional):</label>
+                <input type="url" id="service-image" placeholder="https://ejemplo.com/foto.jpg">
+                <small style="color:#888; font-size:12px;">Si lo dejas en blanco, usaremos una imagen por defecto.</small>
+            </div>
+
+            <div class="input-group">
+                <label>Selecciona los horarios disponibles:</label>
                 <div id="time-grid" class="time-grid">
                     </div>
-                <p class="selected-info">Horario seleccionado: <span id="display-time">Ninguno</span></p>
+                <p class="selected-info">Horas seleccionadas: <span id="display-time">Ninguna</span></p>
             </div>
 
             <button id="btn-post" class="btn-main">Publicar Servicio</button>

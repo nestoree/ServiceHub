@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, remove, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// --- CONFIGURACIÓN ---
+// --- CONFIGURACIÓN DE FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyDBbStIV1FTMfoGza12KoqstmBj_9sYpxo",
     authDomain: "slowcode-7596b.firebaseapp.com",
@@ -16,7 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const IMG_DEFAULT = "img/image.png";
+
+// Imágenes por defecto
+const IMG_DEFAULT_AVATAR = "img/image.png"; 
+const IMG_DEFAULT_SERV = "img/serv.png";
 
 let currentRecipient = null;
 
@@ -33,7 +36,7 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('main-screen').classList.remove('hidden');
         document.getElementById('user-display').textContent = formatName(user.displayName);
-        document.getElementById('user-avatar').src = user.photoURL || IMG_DEFAULT;
+        document.getElementById('user-avatar').src = user.photoURL || IMG_DEFAULT_AVATAR;
         
         // Registro/Actualización de usuario en Directorio
         const userRef = ref(db, `users/${user.uid}`);
@@ -67,81 +70,88 @@ window.handleAuth = async () => {
 
 window.logout = () => signOut(auth);
 
-// --- GESTIÓN DE SERVICIOS (PROTECCIÓN XSS) ---
-window.uploadService = () => {
-    const n = document.getElementById('service-name').value;
-    const t = document.getElementById('service-time').value;
-    if (n && t) {
-        push(ref(db, 'services'), {
-            name: n,
-            time: t,
-            ownerName: formatName(auth.currentUser.displayName),
-            ownerPhoto: auth.currentUser.photoURL || "",
-            uid: auth.currentUser.uid,
-            timestamp: Date.now()
-        });
-        document.getElementById('service-name').value = '';
-        document.getElementById('service-time').value = '';
-    }
-};
-
+// --- CARGA DE SERVICIOS (Protegido contra XSS y con Imágenes) ---
 function loadServices() {
     onValue(ref(db, 'services'), (snapshot) => {
         const list = document.getElementById('service-list');
         list.innerHTML = ''; 
         
-        const title = document.createElement('h3');
-        title.textContent = "Servicios de la Comunidad";
-        title.style.color = "white";
-        list.appendChild(title);
-
         const data = snapshot.val();
         if (data) {
             Object.keys(data).reverse().forEach(key => {
                 const s = data[key];
+                
                 const card = document.createElement('div');
                 card.className = 'service-card';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '10px';
 
-                // Imagen
-                const img = document.createElement('img');
-                img.className = 'service-avatar';
-                img.src = s.ownerPhoto || IMG_DEFAULT;
-                img.onerror = () => { img.src = IMG_DEFAULT; };
+                // 1. Cabecera del Autor (Foto + Nombre)
+                const authorHeader = document.createElement('div');
+                authorHeader.style.display = 'flex';
+                authorHeader.style.alignItems = 'center';
+                authorHeader.style.gap = '10px';
 
-                // Contenido
-                const info = document.createElement('div');
-                info.className = 'service-info';
+                const authorAvatar = document.createElement('img');
+                authorAvatar.src = s.ownerPhoto || IMG_DEFAULT_AVATAR;
+                authorAvatar.onerror = () => { authorAvatar.src = IMG_DEFAULT_AVATAR; };
+                authorAvatar.style.width = '35px';
+                authorAvatar.style.height = '35px';
+                authorAvatar.style.borderRadius = '50%';
+                authorAvatar.style.objectFit = 'cover';
 
-                const titleS = document.createElement('h4');
+                const authorName = document.createElement('strong');
+                authorName.textContent = s.ownerName;
+
+                authorHeader.append(authorAvatar, authorName);
+
+                // 2. Imagen del Servicio
+                const servImg = document.createElement('img');
+                // Si viene de /serv, la ruta de fallback en s.serviceImage podría ser "../img/serv.png", 
+                // pero si s.serviceImage es un enlace web normal, funcionará perfecto.
+                servImg.src = s.serviceImage && s.serviceImage.startsWith('http') ? s.serviceImage : IMG_DEFAULT_SERV; 
+                servImg.onerror = () => { servImg.src = IMG_DEFAULT_SERV; };
+                servImg.style.width = '100%';
+                servImg.style.height = '180px';
+                servImg.style.objectFit = 'cover';
+                servImg.style.borderRadius = '8px';
+
+                // 3. Info del Servicio
+                const titleS = document.createElement('h3');
                 titleS.textContent = s.name;
+                titleS.style.margin = '5px 0 0 0';
+                titleS.style.color = 'var(--dark)';
 
                 const timeS = document.createElement('p');
-                timeS.textContent = `📅 ${s.time}`;
+                timeS.textContent = `🕒 Horarios: ${s.time}`;
+                timeS.style.fontSize = '14px';
+                timeS.style.color = '#555';
+                timeS.style.margin = '0 0 10px 0';
 
-                const authorS = document.createElement('span');
-                authorS.className = 'author';
-                authorS.textContent = `Publicado por ${s.ownerName}`;
-
-                info.append(titleS, timeS, authorS);
-
-                // Botón Contactar (XSS Safe)
+                // 4. Botones de Acción
+                const actionDiv = document.createElement('div');
+                
                 if (s.uid !== auth.currentUser.uid) {
-                    const btn = document.createElement('button');
-                    btn.textContent = "💬 Contactar";
-                    btn.className = "btn-contact";
-                    btn.onclick = () => openModal(s.uid, s.ownerName, s.name);
-                    info.appendChild(btn);
+                    const btnContact = document.createElement('button');
+                    btnContact.textContent = "💬 Contactar";
+                    btnContact.className = "btn-publish"; // Usa el estilo verde de tu CSS
+                    btnContact.onclick = () => openModal(s.uid, s.ownerName, s.name);
+                    actionDiv.appendChild(btnContact);
                 } else {
                     const btnDel = document.createElement('button');
-                    btnDel.textContent = "Eliminar";
-                    btnDel.style.background = "var(--danger)";
-                    btnDel.onclick = () => { if(confirm("¿Borrar?")) remove(ref(db, `services/${key}`)); };
-                    info.appendChild(btnDel);
+                    btnDel.textContent = "🗑️ Eliminar mi anuncio";
+                    btnDel.style.background = "#e74c3c"; // Rojo para eliminar
+                    btnDel.onclick = () => { if(confirm("¿Seguro que deseas borrar este servicio?")) remove(ref(db, `services/${key}`)); };
+                    actionDiv.appendChild(btnDel);
                 }
 
-                card.append(img, info);
+                // Ensamblar Tarjeta
+                card.append(authorHeader, servImg, titleS, timeS, actionDiv);
                 list.appendChild(card);
             });
+        } else {
+            list.innerHTML = '<p style="color:white; text-align:center;">Aún no hay servicios publicados. ¡Sé el primero!</p>';
         }
     });
 }
@@ -171,7 +181,7 @@ window.sendMessage = async () => {
             service: document.getElementById('msg-service-title').textContent,
             timestamp: Date.now()
         });
-        alert("Mensaje enviado");
+        alert("Mensaje enviado con éxito");
         closeModal();
     } catch (e) {
         alert("Error: " + e.message);
@@ -191,8 +201,8 @@ function loadMembers() {
                 item.className = 'user-item';
 
                 const img = document.createElement('img');
-                img.src = u.photo || IMG_DEFAULT;
-                img.onerror = () => { img.src = IMG_DEFAULT; };
+                img.src = u.photo || IMG_DEFAULT_AVATAR;
+                img.onerror = () => { img.src = IMG_DEFAULT_AVATAR; };
 
                 const info = document.createElement('div');
                 info.className = 'user-item-info';
@@ -201,12 +211,14 @@ function loadMembers() {
                 name.textContent = formatName(u.name);
                 
                 const status = document.createElement('span');
-                status.textContent = "Miembro";
+                status.textContent = "Miembro de la Red";
 
                 info.append(name, status);
                 item.append(img, info);
                 listUI.appendChild(item);
             });
+        } else {
+            listUI.innerHTML = '<p style="color:#888; font-size:12px;">No hay miembros aún.</p>';
         }
     });
 }

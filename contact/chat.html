@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Privado - ServiceHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" style="margin-top: 20px;">
+        <div class="chat-container">
+            <div class="chat-header">
+                <a href="index.html" style="color:white; text-decoration:none;">←</a>
+                <h3 id="chat-partner-name">Chat</h3>
+            </div>
+            <div id="chat-history" class="chat-history"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Escribe un mensaje...">
+                <button id="btn-send-chat" class="btn-chat">Enviar</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="chat.js"></script>
+</body>
+</html>

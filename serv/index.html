@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publicar Servicio - ServiceHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="particles-js"></div>
+
+    <div class="container">
+        <div class="publish-card">
+            <a href="../index.html" class="back-link">← Volver al inicio</a>
+            <h2>📢 Publicar nuevo servicio</h2>
+            
+            <div class="input-group">
+                <label>¿Qué servicio ofreces?</label>
+                <input type="text" id="service-name" placeholder="Ej: Clases de matemáticas, Paseo de perros...">
+            </div>
+
+            <div class="input-group">
+                <label>Selecciona el horario disponible:</label>
+                <div id="time-grid" class="time-grid">
+                    </div>
+                <p class="selected-info">Horario seleccionado: <span id="display-time">Ninguno</span></p>
+            </div>
+
+            <button id="btn-post" class="btn-main">Publicar Servicio</button>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

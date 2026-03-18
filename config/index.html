@@ -3,33 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración de Perfil</title>
-    <link rel="stylesheet" href="../style.css">
+    <title>Mi perfil | ServiceHub</title>
+    <link rel="stylesheet" href="../serv/style.css">
 </head>
 <body>
-    <div id="particles-js"></div>
-    <div class="container">
-        <div class="card" style="margin-top: 50px;">
-            <h2 style="text-align: center;">Tu Perfil</h2>
-            <div style="text-align:center; margin-bottom: 20px;">
-                <img id="prev-img" src="../img/image.png" onerror="this.src='../img/image.png'" style="width:110px; height:110px; border-radius:50%; object-fit:cover; border: 3px solid var(--primary);">
-            </div>
-            
-            <label>Nombre Público:</label>
-            <input type="text" id="new-name">
-            
-            <label>Link de tu Foto (URL):</label>
-            <input type="text" id="new-photo" placeholder="https://ejemplo.com/tu-foto.jpg">
-            
-            <label>Descripción:</label>
-            <textarea id="new-desc" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"></textarea>
-            
-            <button onclick="save()" style="background:var(--secondary); color:white; margin-top:15px;">Guardar Cambios</button>
-            <button onclick="window.location.href='../index.html'" style="background:var(--dark); color:white; margin-top:10px;">Volver al Inicio</button>
-        </div>
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="background-orb orb-one" aria-hidden="true"></div>
+    <div class="background-orb orb-two" aria-hidden="true"></div>
+
+    <div class="publish-shell">
+        <header class="publish-header glass-panel">
+            <a href="../index.html" class="brand" aria-label="Volver al inicio">
+                <span class="brand-mark"></span>
+                <span class="brand-copy">
+                    <strong>ServiceHub</strong>
+                    <small>Volver a la pantalla principal</small>
+                </span>
+            </a>
+
+            <span id="profile-status" class="status-pill">Cargando perfil...</span>
+        </header>
+
+        <main class="publish-layout">
+            <section class="intro-card glass-panel">
+                <p class="section-label">Perfil del anunciante</p>
+                <h1>Actualiza tu presencia visible en los anuncios.</h1>
+                <p class="intro-text">
+                    Lo que guardes aquí se reutiliza al publicar: nombre, bio, zona, redes sociales y foto personal.
+                    También puedes cambiar tu foto usando URL directa o archivo local con vista previa inmediata.
+                </p>
+
+                <div class="intro-notes">
+                    <div class="note-card">
+                        <strong>Imagen flexible</strong>
+                        <span>Pega una URL o sube una foto desde tu PC.</span>
+                    </div>
+
+                    <div class="note-card">
+                        <strong>Perfil reutilizable</strong>
+                        <span>Estos datos se arrastran al crear nuevos anuncios.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="publish-card glass-panel">
+                <form id="profile-form">
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Datos visibles</p>
+                                <h2>Nombre, bio y ubicación</h2>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <label class="input-group">
+                                <span>Nombre público</span>
+                                <input type="text" id="profile-name" placeholder="Tu nombre visible">
+                            </label>
+
+                            <label class="input-group">
+                                <span>Ciudad o zona</span>
+                                <input type="text" id="profile-location" placeholder="Ej: Las Palmas, Telde, Arucas">
+                            </label>
+
+                            <label class="input-group two-column">
+                                <span>Descripción del anunciante</span>
+                                <textarea id="profile-description" rows="5" placeholder="Cuenta quién eres, qué haces y qué te diferencia."></textarea>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Redes</p>
+                                <h2>Cómo encontrarte fuera de la app</h2>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <label class="input-group">
+                                <span>Meta</span>
+                                <input type="text" id="profile-meta" placeholder="facebook.com/tu-perfil">
+                            </label>
+
+                            <label class="input-group">
+                                <span>Twitter o X</span>
+                                <input type="text" id="profile-twitter" placeholder="x.com/tu-perfil">
+                            </label>
+
+                            <label class="input-group two-column">
+                                <span>Otra red o web</span>
+                                <input type="text" id="profile-other" placeholder="web, WhatsApp, Telegram o la que prefieras">
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Foto de perfil</p>
+                                <h2>URL o archivo local</h2>
+                            </div>
+                        </div>
+
+                        <div class="media-grid">
+                            <article class="media-card">
+                                <label class="input-group">
+                                    <span>URL directa</span>
+                                    <input type="url" id="profile-photo-url" placeholder="https://ejemplo.com/perfil.jpg">
+                                </label>
+
+                                <label class="upload-box">
+                                    <span>Subida desde PC</span>
+                                    <input type="file" id="profile-photo-file" accept="image/*">
+                                </label>
+
+                                <img id="profile-photo-preview" class="media-preview avatar-preview" src="../img/image.png" alt="Vista previa del perfil">
+                            </article>
+                        </div>
+                    </section>
+
+                    <p id="profile-feedback" class="form-feedback hidden" role="status" aria-live="polite"></p>
+
+                    <button class="button button-primary submit-button" type="submit">Guardar cambios</button>
+                </form>
+            </section>
+        </main>
     </div>
+
     <script type="module" src="script.js"></script>
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script src="../particles-config.js"></script>
 </body>
 </html>

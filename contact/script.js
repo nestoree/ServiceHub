@@ -16,58 +16,271 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+const dom = {
+    activityStatus: document.getElementById("activity-status"),
+    customerBookingsCount: document.getElementById("customer-bookings-count"),
+    ownerBookingsCount: document.getElementById("owner-bookings-count"),
+    messagesCount: document.getElementById("messages-count"),
+    customerBookingsList: document.getElementById("customer-bookings-list"),
+    ownerBookingsList: document.getElementById("owner-bookings-list"),
+    messagesList: document.getElementById("messages-list")
+};
+
 onAuthStateChanged(auth, (user) => {
-    if (user) { loadMyMessages(user.uid); }
-    else { window.location.href = "../index.html"; }
+    if (!user) {
+        window.location.href = "../index.html";
+        return;
+    }
+
+    dom.activityStatus.textContent = `Sesión activa: ${formatName(user.displayName || user.email || "Usuario")}`;
+    loadCustomerBookings(user.uid);
+    loadOwnerBookings(user.uid);
+    loadMyMessages(user.uid);
 });
 
-function loadMyMessages(myUid) {
-    const list = document.getElementById('messages-list');
-    onValue(ref(db, `messages/${myUid}`), (snapshot) => {
-        list.innerHTML = '';
-        const data = snapshot.val();
-        
-        if (!data) {
-            list.innerHTML = '<div style="text-align:center; color:white; padding:50px;"><h3>Tu buzón está limpio</h3><p>No tienes mensajes ni chats pendientes.</p></div>';
+function loadCustomerBookings(uid) {
+    onValue(ref(db, `bookingByCustomer/${uid}`), (snapshot) => {
+        const items = snapshot.exists()
+            ? Object.values(snapshot.val()).sort((left, right) => Number(right.createdAt || 0) - Number(left.createdAt || 0))
+            : [];
+
+        dom.customerBookingsCount.textContent = String(items.length);
+
+        if (!items.length) {
+            dom.customerBookingsList.innerHTML = renderEmptyCard(
+                "Todavía no has contratado servicios desde tu sesión.",
+                "Cuando reserves estando dentro de tu cuenta, aparecerán aquí."
+            );
             return;
         }
 
-        Object.keys(data).forEach(key => {
-            const m = data[key];
-            const card = document.createElement('div');
-            card.className = 'message-card';
+        dom.customerBookingsList.innerHTML = items.map((booking) => `
+            <article class="activity-card">
+                <img class="activity-image" src="${escapeHTML(resolveImage(booking.serviceImage))}" alt="Servicio ${escapeHTML(booking.serviceTitle)}">
+                <div class="activity-content">
+                    <div class="activity-head">
+                        <div>
+                            <h3 class="activity-title">${escapeHTML(booking.serviceTitle)}</h3>
+                            <p class="activity-subtitle">Con ${escapeHTML(booking.ownerName || "Anunciante")}</p>
+                        </div>
+                        <span class="activity-time">${escapeHTML(formatDate(booking.createdAt))}</span>
+                    </div>
 
-            // Construcción segura de la tarjeta
-            const header = document.createElement('div');
-            header.className = 'msg-header';
-            header.innerHTML = `<span class="msg-sender">${m.fromName}</span><span class="msg-service">${m.service}</span>`;
+                    <div class="activity-chip-row">
+                        <span class="activity-chip">${escapeHTML(booking.targetLabel || "Disponibilidad")}</span>
+                        <span class="activity-chip">${escapeHTML(booking.slotLabel || "Hora")}</span>
+                        <span class="activity-chip">${escapeHTML(formatMode(booking.mode))}</span>
+                    </div>
 
-            const body = document.createElement('div');
-            body.className = 'msg-body';
-            body.textContent = m.message;
+                    <div class="activity-meta-grid">
+                        <div class="activity-meta">
+                            <span>Ubicación</span>
+                            <strong>${escapeHTML(booking.businessLocation || "Por concretar")}</strong>
+                        </div>
 
-            const actions = document.createElement('div');
-            actions.className = 'btn-group';
+                        <div class="activity-meta">
+                            <span>Estado</span>
+                            <strong>Reserva registrada</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        `).join("");
 
-            const btnChat = document.createElement('button');
-            btnChat.className = 'btn-chat';
-            btnChat.textContent = "💬 Abrir Chat";
-            btnChat.onclick = () => {
-                window.location.href = `chat.html?uid=${m.fromUid}&name=${encodeURIComponent(m.fromName)}`;
-            };
+        attachImageFallbacks(dom.customerBookingsList);
+    });
+}
 
-            const btnDel = document.createElement('button');
-            btnDel.className = 'btn-delete';
-            btnDel.textContent = "🗑️ Borrar";
-            btnDel.onclick = () => {
-                if(confirm("¿Eliminar esta conversación del buzón?")) {
-                    remove(ref(db, `messages/${myUid}/${key}`));
+function loadOwnerBookings(uid) {
+    onValue(ref(db, `bookingByOwner/${uid}`), (snapshot) => {
+        const items = snapshot.exists()
+            ? Object.values(snapshot.val()).sort((left, right) => Number(right.createdAt || 0) - Number(left.createdAt || 0))
+            : [];
+
+        dom.ownerBookingsCount.textContent = String(items.length);
+
+        if (!items.length) {
+            dom.ownerBookingsList.innerHTML = renderEmptyCard(
+                "Todavía no te han contratado servicios.",
+                "Las nuevas reservas aparecerán aquí con los datos del cliente."
+            );
+            return;
+        }
+
+        dom.ownerBookingsList.innerHTML = items.map((booking) => `
+            <article class="activity-card">
+                <img class="activity-image" src="${escapeHTML(resolveImage(booking.serviceImage))}" alt="Servicio ${escapeHTML(booking.serviceTitle)}">
+                <div class="activity-content">
+                    <div class="activity-head">
+                        <div>
+                            <h3 class="activity-title">${escapeHTML(booking.serviceTitle)}</h3>
+                            <p class="activity-subtitle">Cliente: ${escapeHTML(booking.customerName || "Cliente web")}</p>
+                        </div>
+                        <span class="activity-time">${escapeHTML(formatDate(booking.createdAt))}</span>
+                    </div>
+
+                    <div class="activity-chip-row">
+                        <span class="activity-chip">${escapeHTML(booking.targetLabel || "Disponibilidad")}</span>
+                        <span class="activity-chip">${escapeHTML(booking.slotLabel || "Hora")}</span>
+                        <span class="activity-chip">${escapeHTML(formatMode(booking.mode))}</span>
+                    </div>
+
+                    <div class="activity-meta-grid">
+                        <div class="activity-meta">
+                            <span>Correo</span>
+                            <strong>${escapeHTML(booking.customerEmail || "No disponible")}</strong>
+                        </div>
+
+                        <div class="activity-meta">
+                            <span>Teléfono</span>
+                            <strong>${escapeHTML(booking.customerPhone || "No disponible")}</strong>
+                        </div>
+
+                        <div class="activity-meta">
+                            <span>Dirección</span>
+                            <strong>${escapeHTML(booking.customerAddress || booking.businessLocation || "Por concretar")}</strong>
+                        </div>
+
+                        <div class="activity-meta">
+                            <span>Notas</span>
+                            <strong>${escapeHTML(booking.customerNotes || "Sin notas")}</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        `).join("");
+
+        attachImageFallbacks(dom.ownerBookingsList);
+    });
+}
+
+function loadMyMessages(myUid) {
+    onValue(ref(db, `messages/${myUid}`), (snapshot) => {
+        const data = snapshot.val() || {};
+        const messages = Object.entries(data)
+            .map(([key, value]) => ({ id: key, ...value }))
+            .sort((left, right) => Number(right.timestamp || 0) - Number(left.timestamp || 0));
+
+        dom.messagesCount.textContent = String(messages.length);
+
+        if (!messages.length) {
+            dom.messagesList.innerHTML = renderEmptyCard(
+                "Tu buzón está limpio.",
+                "Cuando alguien te escriba o entre en un chat, aparecerá aquí."
+            );
+            return;
+        }
+
+        dom.messagesList.innerHTML = messages.map((message) => `
+            <article class="message-card" data-message-id="${escapeHTML(message.id)}">
+                <div class="msg-header">
+                    <div>
+                        <span class="msg-sender">${escapeHTML(message.fromName || "Usuario")}</span>
+                        <span class="msg-date">${escapeHTML(formatDate(message.timestamp))}</span>
+                    </div>
+                    <span class="msg-service">${escapeHTML(message.service || "Conversación")}</span>
+                </div>
+
+                <div class="msg-body">${escapeHTML(message.message || "")}</div>
+
+                <div class="btn-group">
+                    <button type="button" class="button button-primary btn-inline" data-open-chat="${escapeHTML(message.fromUid || "")}" data-open-name="${escapeHTML(message.fromName || "Usuario")}">Abrir chat</button>
+                    <button type="button" class="button button-soft btn-inline" data-delete-message="${escapeHTML(message.id)}">Borrar</button>
+                </div>
+            </article>
+        `).join("");
+
+        dom.messagesList.querySelectorAll("[data-open-chat]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const uid = button.dataset.openChat;
+                const name = button.dataset.openName || "Usuario";
+                if (!uid) {
+                    return;
                 }
-            };
 
-            actions.append(btnChat, btnDel);
-            card.append(header, body, actions);
-            list.appendChild(card);
+                window.location.href = `chat.html?uid=${encodeURIComponent(uid)}&name=${encodeURIComponent(name)}`;
+            });
+        });
+
+        dom.messagesList.querySelectorAll("[data-delete-message]").forEach((button) => {
+            button.addEventListener("click", async () => {
+                const messageId = button.dataset.deleteMessage;
+                if (!messageId) {
+                    return;
+                }
+
+                if (!window.confirm("¿Eliminar esta conversación del buzón?")) {
+                    return;
+                }
+
+                await remove(ref(db, `messages/${myUid}/${messageId}`));
+            });
         });
     });
+}
+
+function attachImageFallbacks(scope) {
+    scope.querySelectorAll("img").forEach((image) => {
+        image.addEventListener("error", () => {
+            image.src = "../img/serv.png";
+        }, { once: true });
+    });
+}
+
+function renderEmptyCard(title, copy) {
+    return `
+        <div class="empty-card">
+            <strong>${escapeHTML(title)}</strong>
+            <p>${escapeHTML(copy)}</p>
+        </div>
+    `;
+}
+
+function resolveImage(value) {
+    const path = String(value || "").trim();
+
+    if (!path) {
+        return "../img/serv.png";
+    }
+
+    if (path.startsWith("data:image/") || path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+
+    if (path.startsWith("../") || path.startsWith("./") || path.startsWith("img/")) {
+        return path;
+    }
+
+    return "../img/serv.png";
+}
+
+function formatMode(mode) {
+    return mode === "local" ? "Servicio en local" : "Servicio a domicilio";
+}
+
+function formatDate(timestamp) {
+    const numeric = Number(timestamp) || Date.now();
+    return new Date(numeric).toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+    });
+}
+
+function formatName(name) {
+    const parts = String(name || "Usuario").trim().split(/\s+/);
+    if (parts.length <= 1) {
+        return parts[0];
+    }
+
+    return `${parts[0]} ${parts[1][0]}.`;
+}
+
+function escapeHTML(value) {
+    return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
 }

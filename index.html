@@ -3,75 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ServiceHub - Comunidad</title>
+    <title>ServiceHub | Anuncios cotidianos y reservas</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="background-orb orb-one" aria-hidden="true"></div>
+    <div class="background-orb orb-two" aria-hidden="true"></div>
+    <div class="background-orb orb-three" aria-hidden="true"></div>
 
-    <div id="particles-js"></div>
+    <div class="shell">
+        <header class="topbar glass-panel">
+            <a href="index.html" class="brand" data-go-home aria-label="Volver a la pantalla principal">
+                <span class="brand-copy">
+                    <strong>ServiceHub</strong>
+                    <small>Anuncios para tareas cotidianas, bienestar y escapadas</small>
+                </span>
+            </a>
 
-    <div id="login-screen" class="container">
-        <div class="card">
-            <h2>Acceso ServiceHub</h2>
-            <input type="text" id="full-name" placeholder="Tu Nombre Real (para el perfil)">
-            <input type="email" id="email" placeholder="Correo electrónico">
-            <input type="password" id="password" placeholder="Contraseña">
-            <button onclick="handleAuth()">Entrar o Registrarse</button>
-        </div>
-    </div>
+            <div class="topbar-actions">
+                <button id="publish-cta" class="button button-primary" type="button">Publicar anuncio</button>
 
-    <div id="main-screen" class="app-wrapper hidden">
-        
-        <header class="main-header">
-            <div class="user-profile">
-                <img id="user-avatar" src="img/image.png" onerror="this.src='img/image.png'" class="nav-avatar">
-                <h1>Hola, <span id="user-display"></span></h1>
-            </div>
-            
-            <div class="dropdown">
-                <button class="dropbtn">Mi Cuenta ▼</button>
-                <div class="dropdown-content">
-                    <a href="config/index.html">⚙️ Mi Perfil</a>
-                    <a href="#" onclick="logout()">❌ Salir</a>
+                <div class="account-wrap">
+                    <button id="account-trigger" class="button button-soft" type="button">Entrar</button>
+
+                    <div id="account-menu" class="account-menu hidden">
+                        <a href="serv/index.html">Nuevo anuncio</a>
+                        <a href="contact/index.html">Actividad</a>
+                        <a href="config/index.html">Mi perfil</a>
+                        <button id="logout-action" type="button">Cerrar sesión</button>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <div class="main-layout">
-            <div class="content-area">
-                <button onclick="window.location.href='serv/index.html'" style="margin-bottom:20px; background:#3498db; color:white; padding:15px; border-radius:10px; width:100%; font-weight:bold; cursor:pointer;">
-                    ➕ Publicar un nuevo servicio
-                </button>
-                <button onclick="window.location.href='contact/index.html'" style="margin-bottom:20px; background:transparent; color:#3498db; border:2px solid #3498db; padding:15px; border-radius:10px; width:100%; font-weight:bold; cursor:pointer;">
-                    📥 Ver mis mensajes recibidos
-                </button>
-                <div id="service-list"></div>
-            </div>
+        <main class="page-stack">
+            <section id="home-screen" class="screen">
+                <section class="hero glass-panel">
+                    <div class="hero-copy">
+                        <p class="section-label">Servicios cotidianos con estética frutiger aero moderna</p>
+                        <h1>Encuentra a quien pueda hacerlo por ti.</h1>
+                        <p class="hero-text">
+                            Busca limpieza, yoga, cocina, compras, excursiones o cuidados en una sola app.
+                            Al entrar en cada anuncio verás especificaciones, redes del anunciante, puntuación,
+                            reseñas, disponibilidad y horas reservables que dejan de ser clicables cuando ya se
+                            han cogido.
+                        </p>
 
-            <aside class="sidebar">
-                <div class="sidebar-card">
-                    <h4>Miembros Activos</h4>
-                    <div id="suggested-users-list"></div>
+                        <div class="hero-actions">
+                            <button id="hero-publish" class="button button-primary" type="button">Quiero anunciarme</button>
+                            <button id="hero-explore" class="button button-soft" type="button">Ver servicios</button>
+                        </div>
+                    </div>
+
+                    <div class="hero-stats">
+                        <article class="stat-card">
+                            <strong id="service-count">0</strong>
+                            <span>Anuncios visibles</span>
+                        </article>
+
+                        <article class="stat-card">
+                            <strong id="category-count">0</strong>
+                            <span>Categorías activas</span>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="toolbar glass-panel">
+                    <div class="toolbar-main">
+                        <label class="search-field" for="search-input">
+                            <span class="sr-only">Buscar servicios</span>
+                            <input id="search-input" type="search" placeholder="¿Qué estamos buscando?">
+                        </label>
+
+                        <div class="toolbar-side">
+                            <p class="toolbar-label">Filtrar por categorías</p>
+                            <div id="category-filters" class="category-filters" aria-label="Filtrar por categorías"></div>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-actions">
+                        <div class="view-switch" aria-label="Cambiar vista de anuncios">
+                            <button class="view-button is-active" data-view="grid" type="button">Cuadrícula</button>
+                            <button class="view-button" data-view="list" type="button">Listado</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="discovery-strip">
+                    <article class="discover-card glass-panel">
+                        <p class="section-label">Cotidiano y más allá</p>
+                        <h2>Descubre también lo que no ibas buscando</h2>
+                        <p class="discover-text">
+                            La portada mezcla tareas diarias con bienestar y ocio para que la persona que entra
+                            termine encontrando soluciones y planes que no tenía previstos.
+                        </p>
+                        <div id="category-summary" class="summary-chip-row"></div>
+                    </article>
+
+                    <article class="discover-card glass-panel">
+                        <p class="section-label">Próximos huecos</p>
+                        <h2>Agenda abierta ahora</h2>
+                        <div id="spotlight-list" class="spotlight-list"></div>
+                    </article>
+                </section>
+
+                <section class="results-section">
+                    <div class="results-head">
+                        <div>
+                            <p class="section-label">Tablón principal</p>
+                            <h2>Anuncios de servicios</h2>
+                        </div>
+
+                        <p id="results-copy" class="results-copy">Cargando anuncios...</p>
+                    </div>
+
+                    <div id="service-feed" class="service-feed" data-view="grid"></div>
+
+                    <div id="empty-state" class="empty-state hidden">
+                        <h3>No hay servicios con esos filtros</h3>
+                        <p>Prueba otra categoría o publica un anuncio nuevo para esa necesidad.</p>
+                    </div>
+                </section>
+            </section>
+
+            <section id="detail-screen" class="screen hidden">
+                <div class="detail-controls">
+                    <button id="detail-back" class="button button-soft" type="button">Volver a la pantalla principal</button>
                 </div>
-            </aside>
-        </div>
+
+                <article class="detail-shell glass-panel">
+                    <div class="detail-banner">
+                        <img id="detail-banner-image" class="detail-banner-image" src="img/serv.png" alt="Banner del anuncio">
+                        <div class="detail-banner-scrim"></div>
+                        <div class="detail-banner-content">
+                            <div class="detail-banner-pills">
+                                <span id="detail-category-pill" class="detail-banner-pill">Categoría</span>
+                                <span id="detail-mode-pill" class="detail-banner-pill">Modalidad</span>
+                            </div>
+
+                            <h1 id="detail-title">Servicio</h1>
+                            <p id="detail-subtitle" class="detail-subtitle"></p>
+                        </div>
+                    </div>
+
+                    <div class="detail-layout">
+                        <aside class="detail-sidebar">
+                            <section class="glass-subpanel">
+                                <div class="advertiser-head">
+                                    <img id="detail-owner-photo" class="owner-avatar-large" src="img/image.png" alt="Foto del anunciante">
+
+                                    <div class="advertiser-copy">
+                                        <p id="detail-owner-name" class="owner-title">Anunciante</p>
+                                        <div id="detail-owner-stars" class="rating-line"></div>
+                                        <p id="detail-owner-location" class="owner-location"></p>
+                                    </div>
+                                </div>
+
+                                <p id="detail-owner-bio" class="detail-copy"></p>
+                                <div id="detail-social-links" class="social-list"></div>
+                            </section>
+
+                            <section class="glass-subpanel">
+                                <p class="section-label">Disponibilidad</p>
+                                <h2 id="detail-availability-heading">Selecciona un hueco</h2>
+                                <p id="detail-availability-copy" class="detail-copy"></p>
+
+                                <div id="detail-target-buttons" class="choice-grid"></div>
+                                <div id="detail-slot-buttons" class="choice-grid"></div>
+
+                                <div id="detail-booking-panel" class="booking-panel hidden">
+                                    <div id="detail-booking-summary" class="summary-card"></div>
+
+                                    <div id="detail-local-info" class="inline-note hidden"></div>
+
+                                    <div id="detail-domicile-form" class="form-stack hidden">
+                                        <input id="booking-customer-name" type="text" placeholder="Nombre del cliente">
+                                        <input id="booking-customer-phone" type="tel" placeholder="Teléfono de contacto">
+                                        <input id="booking-customer-address" type="text" placeholder="Dirección para el servicio a domicilio">
+                                        <textarea id="booking-customer-notes" rows="3" placeholder="Indicaciones o notas útiles"></textarea>
+                                    </div>
+
+                                    <button id="detail-book-button" class="button button-primary" type="button">Concertar servicio</button>
+                                </div>
+                            </section>
+                        </aside>
+
+                        <section class="detail-content">
+                            <section class="glass-subpanel">
+                                <p class="section-label">Especificaciones</p>
+                                <h2>Lo que ofrece el anuncio</h2>
+                                <p id="detail-description" class="detail-copy"></p>
+                                <div id="detail-spec-grid" class="spec-grid"></div>
+                            </section>
+
+                            <section class="glass-subpanel reviews-section">
+                                <div class="reviews-head">
+                                    <div>
+                                        <p class="section-label">Opiniones</p>
+                                        <h2>Reseñas del servicio</h2>
+                                    </div>
+
+                                    <div id="detail-review-summary" class="review-summary"></div>
+                                </div>
+
+                                <div class="review-toolbar">
+                                    <div id="review-star-filters" class="review-star-filters"></div>
+
+                                    <label class="review-sort">
+                                        <span>Ordenar por</span>
+                                        <select id="review-sort">
+                                            <option value="recent">Más recientes</option>
+                                            <option value="oldest">Más antiguas</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div id="review-list" class="review-list"></div>
+                            </section>
+                        </section>
+                    </div>
+                </article>
+            </section>
+        </main>
     </div>
-    
-    <div id="message-modal" class="modal hidden">
-        <div class="card modal-content">
-            <h3>Enviar mensaje a <span id="msg-recipient-name"></span></h3>
-            <p>Asunto: <strong id="msg-service-title"></strong></p>
-            <textarea id="msg-text" placeholder="Escribe tu propuesta o duda aquí..." rows="4"></textarea>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button onclick="sendMessage()" class="btn-publish">Enviar Mensaje</button>
-                <button onclick="closeModal()" style="background:var(--dark)">Cancelar</button>
+
+    <div id="auth-modal" class="modal hidden" aria-hidden="true">
+        <div class="modal-panel glass-panel modal-auth">
+            <button class="modal-close" data-close="auth-modal" type="button" aria-label="Cerrar acceso">Cerrar</button>
+            <p class="section-label">Acceso para anunciantes</p>
+            <h3>Inicia sesión o crea tu cuenta</h3>
+            <p class="modal-text">
+                Necesitas acceso para publicar y editar tus propios anuncios. Si el correo no existe todavía,
+                puedes crear la cuenta desde aquí.
+            </p>
+
+            <div class="form-stack">
+                <input type="text" id="full-name" placeholder="Tu nombre visible">
+                <input type="email" id="email" placeholder="Correo electrónico">
+                <input type="password" id="password" placeholder="Contraseña">
+                <button id="auth-submit" class="button button-primary" type="button">Entrar o registrarme</button>
             </div>
         </div>
     </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script type="module" src="script.js"></script>
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script src="particles-config.js"></script>
 </body>
 </html>
-

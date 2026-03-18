@@ -3,25 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buzón de Entrada - ServiceHub</title>
+    <title>Actividad | ServiceHub</title>
+    <link rel="stylesheet" href="../serv/style.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div id="particles-js"></div>
+<body class="activity-page">
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="background-orb orb-one" aria-hidden="true"></div>
+    <div class="background-orb orb-two" aria-hidden="true"></div>
 
-    <div class="container">
-        <a href="../index.html" class="back-link">← Volver al inicio</a>
-        
-        <div class="header-box">
-            <h2>📥 Mis Mensajes y Chats</h2>
-            <p>Gestiona tus propuestas y responde a los interesados.</p>
-        </div>
+    <div class="publish-shell activity-shell">
+        <header class="publish-header glass-panel">
+            <a href="../index.html" class="brand" aria-label="Volver al inicio">
+                <span class="brand-mark"></span>
+                <span class="brand-copy">
+                    <strong>ServiceHub</strong>
+                    <small>Volver a la pantalla principal</small>
+                </span>
+            </a>
 
-        <div id="messages-list">
-            <p style="color: white; text-align: center;">Buscando mensajes...</p>
-        </div>
+            <span id="activity-status" class="status-pill">Cargando actividad...</span>
+        </header>
+
+        <main class="activity-layout">
+            <section class="intro-card glass-panel">
+                <p class="section-label">Actividad</p>
+                <h1>Controla lo que contrataste y lo que te contrataron.</h1>
+                <p class="intro-text">
+                    Aquí ves tu actividad completa en ServiceHub: servicios que reservaste, servicios que otros te
+                    contrataron y el buzón de conversaciones para seguir cada contacto desde un solo sitio.
+                </p>
+
+                <div class="activity-counts">
+                    <article class="summary-card activity-count-card">
+                        <strong id="customer-bookings-count">0</strong>
+                        <span>Servicios contratados</span>
+                    </article>
+
+                    <article class="summary-card activity-count-card">
+                        <strong id="owner-bookings-count">0</strong>
+                        <span>Servicios que te contrataron</span>
+                    </article>
+
+                    <article class="summary-card activity-count-card">
+                        <strong id="messages-count">0</strong>
+                        <span>Conversaciones activas</span>
+                    </article>
+                </div>
+            </section>
+
+            <section class="publish-card glass-panel">
+                <div class="activity-stack">
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Contratados</p>
+                                <h2>Servicios que reservaste</h2>
+                            </div>
+                        </div>
+
+                        <div id="customer-bookings-list" class="activity-list">
+                            <div class="empty-card">Buscando tus reservas...</div>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Recibidos</p>
+                                <h2>Servicios que te contrataron</h2>
+                            </div>
+                        </div>
+
+                        <div id="owner-bookings-list" class="activity-list">
+                            <div class="empty-card">Buscando contrataciones recibidas...</div>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Mensajes</p>
+                                <h2>Buzón y chats</h2>
+                            </div>
+                        </div>
+
+                        <div id="messages-list" class="message-list">
+                            <div class="empty-card">Buscando mensajes...</div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script type="module" src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="../particles-config.js"></script>
 </body>
 </html>

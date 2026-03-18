@@ -3,39 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Publicar Servicio - ServiceHub</title>
+    <title>Publicar anuncio | ServiceHub</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="particles-js"></div>
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="background-orb orb-one" aria-hidden="true"></div>
+    <div class="background-orb orb-two" aria-hidden="true"></div>
 
-    <div class="container">
-        <div class="publish-card">
-            <a href="../index.html" class="back-link">← Volver al inicio</a>
-            <h2>📢 Publicar nuevo servicio</h2>
-            
-            <div class="input-group">
-                <label>¿Qué servicio ofreces?</label>
-                <input type="text" id="service-name" placeholder="Ej: Clases de matemáticas, Paseo de perros...">
-            </div>
+    <div class="publish-shell">
+        <header class="publish-header glass-panel">
+            <a href="../index.html" class="brand" aria-label="Volver al inicio">
+                <span class="brand-mark"></span>
+                <span class="brand-copy">
+                    <strong>ServiceHub</strong>
+                    <small>Volver a la pantalla principal</small>
+                </span>
+            </a>
 
-            <div class="input-group">
-                <label>Enlace de la imagen (Opcional):</label>
-                <input type="url" id="service-image" placeholder="https://ejemplo.com/foto.jpg">
-                <small style="color:#888; font-size:12px;">Si lo dejas en blanco, usaremos una imagen por defecto.</small>
-            </div>
+            <span id="auth-status" class="status-pill">Comprobando sesión...</span>
+        </header>
 
-            <div class="input-group">
-                <label>Selecciona los horarios disponibles:</label>
-                <div id="time-grid" class="time-grid">
+        <main class="publish-layout">
+            <section class="intro-card glass-panel">
+                <p class="section-label">Panel del anunciante</p>
+                <h1>Publica un servicio con horarios reservables.</h1>
+                <p class="intro-text">
+                    Aquí puedes crear el anuncio completo: descripción editable, categoría, precio, redes sociales,
+                    foto personal, imagen del servicio y disponibilidad por días de semana, días del mes o servicio
+                    diario. Las citas reservadas quedarán bloqueadas al instante en la ficha del anuncio.
+                </p>
+
+                <div class="intro-notes">
+                    <div class="note-card">
+                        <strong>Imágenes flexibles</strong>
+                        <span>Puedes usar URL directa o subir archivo local con vista previa inmediata.</span>
                     </div>
-                <p class="selected-info">Horas seleccionadas: <span id="display-time">Ninguna</span></p>
-            </div>
 
-            <button id="btn-post" class="btn-main">Publicar Servicio</button>
-        </div>
+                    <div class="note-card">
+                        <strong>Horarios en formato 24h</strong>
+                        <span>Solo se aceptan horas válidas como 09:15, 18:30 o 20:45.</span>
+                    </div>
+
+                    <div class="note-card">
+                        <strong>Dos tipos de agenda</strong>
+                        <span>Hora concreta o tramo fijo con inicio y fin editables manualmente.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="publish-card glass-panel">
+                <form id="publish-form">
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Servicio</p>
+                                <h2>Datos principales del anuncio</h2>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <label class="input-group">
+                                <span>Rótulo del anuncio</span>
+                                <input type="text" id="service-title" placeholder="Ej: Yoga suave para principiantes">
+                            </label>
+
+                            <label class="input-group">
+                                <span>Categoría</span>
+                                <select id="service-category">
+                                    <option value="Limpieza">Limpieza</option>
+                                    <option value="Deportes">Deportes</option>
+                                    <option value="Cocina">Cocina</option>
+                                    <option value="Cuidados">Cuidados</option>
+                                    <option value="Compras">Compras</option>
+                                    <option value="Excursiones">Excursiones</option>
+                                </select>
+                            </label>
+
+                            <label class="input-group">
+                                <span>Precio medio</span>
+                                <input type="number" id="service-price" min="0" step="0.01" placeholder="35">
+                            </label>
+
+                            <label class="input-group">
+                                <span>Localización del negocio o zona</span>
+                                <input type="text" id="business-location" placeholder="Ej: Triana, Las Palmas o zona a domicilio">
+                            </label>
+                        </div>
+
+                        <label class="input-group">
+                            <span>Especificación del servicio</span>
+                            <textarea id="service-description" rows="5" placeholder="Describe con claridad qué hace el anunciante, para quién es ideal y cómo se presta el servicio."></textarea>
+                        </label>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Modalidad</p>
+                                <h2>¿Servicio a domicilio o en local?</h2>
+                            </div>
+                        </div>
+
+                        <div id="mode-selector" class="segmented-control">
+                            <button type="button" class="segment is-active" data-mode="domicilio">A domicilio</button>
+                            <button type="button" class="segment" data-mode="local">En local</button>
+                        </div>
+
+                        <input type="hidden" id="service-mode" value="domicilio">
+
+                        <label id="local-address-group" class="input-group hidden">
+                            <span>Dirección exacta del local</span>
+                            <input type="text" id="local-address" placeholder="Calle, número o punto de encuentro">
+                        </label>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Anunciante</p>
+                                <h2>Perfil cargado automáticamente</h2>
+                            </div>
+                        </div>
+
+                        <p class="helper-text">
+                            Nombre, bio, ubicación, redes y foto se leen desde tu perfil guardado en Firebase.
+                            Si necesitas cambiarlos, edítalos en tu perfil y vuelve aquí.
+                        </p>
+
+                        <div class="auto-profile-grid">
+                            <article class="media-card">
+                                <h3>Foto actual del anunciante</h3>
+                                <img id="owner-photo-preview" class="media-preview avatar-preview" src="../img/image.png" alt="Foto actual del anunciante">
+                            </article>
+
+                            <article class="media-card auto-profile-meta">
+                                <div class="auto-profile-item">
+                                    <span>Nombre</span>
+                                    <strong id="owner-name-display">Pendiente en tu perfil</strong>
+                                </div>
+
+                                <div class="auto-profile-item">
+                                    <span>Ciudad o zona</span>
+                                    <p id="owner-location-display">Añade tu ubicación desde Mi perfil.</p>
+                                </div>
+
+                                <div class="auto-profile-item">
+                                    <span>Descripción</span>
+                                    <p id="owner-bio-display">Añade tu bio desde Mi perfil para usarla en los anuncios.</p>
+                                </div>
+
+                                <div class="auto-profile-item">
+                                    <span>Redes guardadas</span>
+                                    <p id="owner-socials-display">Sin redes guardadas.</p>
+                                </div>
+
+                                <a href="../config/index.html" class="button button-soft profile-link">Editar mi perfil</a>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Imágenes</p>
+                                <h2>Imagen del servicio</h2>
+                            </div>
+                        </div>
+
+                        <div class="media-grid">
+                            <article class="media-card">
+                                <h3>Imagen del anuncio</h3>
+                                <label class="input-group">
+                                    <span>URL directa</span>
+                                    <input type="url" id="service-image-url" placeholder="https://ejemplo.com/servicio.jpg">
+                                </label>
+                                <label class="upload-box">
+                                    <span>Subida desde PC</span>
+                                    <input type="file" id="service-image-file" accept="image/*">
+                                </label>
+                                <img id="service-image-preview" class="media-preview" src="../img/serv.png" alt="Vista previa del anuncio">
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="panel-block">
+                        <div class="section-head">
+                            <div>
+                                <p class="section-label">Disponibilidad</p>
+                                <h2>Define cómo se puede reservar</h2>
+                            </div>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">1. Tipo de recurrencia</p>
+                            <div id="availability-mode-selector" class="segmented-control">
+                                <button type="button" class="segment is-active" data-availability-mode="weekly">Días de la semana</button>
+                                <button type="button" class="segment" data-availability-mode="monthly">Días del mes</button>
+                                <button type="button" class="segment" data-availability-mode="daily">Servicio diario</button>
+                            </div>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">2. Qué días quieres activar</p>
+                            <div id="availability-targets" class="target-grid"></div>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">3. Tipo de horario</p>
+                            <div id="schedule-type-selector" class="segmented-control">
+                                <button type="button" class="segment is-active" data-schedule-type="specific">Hora concreta</button>
+                                <button type="button" class="segment" data-schedule-type="range">Tramo fijo</button>
+                            </div>
+                        </div>
+
+                        <div id="specific-time-panel" class="schedule-panel">
+                            <p class="helper-text">Escribe una hora en formato 24h, pulsa añadir y repite tantas veces como necesites. Cuando termines, pulsa terminar.</p>
+                            <div class="time-builder">
+                                <label class="input-group">
+                                    <span>Hora personalizada</span>
+                                    <input type="text" id="specific-time-input" inputmode="numeric" placeholder="18:30" maxlength="5">
+                                </label>
+                                <button id="add-specific-time" type="button" class="button button-primary">Añadir</button>
+                                <button id="finish-specific-time" type="button" class="button button-soft">Terminar</button>
+                            </div>
+                        </div>
+
+                        <div id="range-time-panel" class="schedule-panel hidden">
+                            <p class="helper-text">Haz doble clic sobre cada campo para editar manualmente inicio y fin en 24h, luego añade el tramo y termina cuando ya no quieras sumar más.</p>
+                            <div class="time-builder range-builder">
+                                <label class="input-group">
+                                    <span>Inicio del tramo</span>
+                                    <input type="text" id="range-start-input" inputmode="numeric" placeholder="09:15" maxlength="5" readonly>
+                                </label>
+                                <label class="input-group">
+                                    <span>Fin del tramo</span>
+                                    <input type="text" id="range-end-input" inputmode="numeric" placeholder="10:45" maxlength="5" readonly>
+                                </label>
+                                <button id="add-range-time" type="button" class="button button-primary">Añadir tramo</button>
+                                <button id="finish-range-time" type="button" class="button button-soft">Terminar</button>
+                            </div>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">4. Resumen de horarios preparados</p>
+                            <div id="drafted-slots" class="drafted-slot-list"></div>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">5. Resumen de disponibilidad final</p>
+                            <div id="schedule-summary" class="schedule-summary"></div>
+                        </div>
+                    </section>
+
+                    <p id="form-feedback" class="form-feedback hidden" role="status" aria-live="polite"></p>
+
+                    <button id="btn-post" class="button button-primary submit-button" type="submit">Publicar anuncio</button>
+                </form>
+            </section>
+        </main>
     </div>
 
     <script type="module" src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="../particles-config.js"></script>
 </body>
 </html>

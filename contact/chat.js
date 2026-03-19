@@ -19,6 +19,7 @@ const db = getDatabase(app);
 const urlParams = new URLSearchParams(window.location.search);
 const otherUid = urlParams.get('uid');
 const otherName = urlParams.get('name');
+const serviceLabel = urlParams.get('service');
 
 document.getElementById('chat-partner-name').textContent = otherName || "Chat";
 
@@ -86,7 +87,7 @@ async function sendMessage() {
             fromName: auth.currentUser.displayName || "Usuario",
             fromUid: myUid,
             message: "Nuevo mensaje de chat: " + text.substring(0, 30) + "...",
-            service: "Chat en vivo",
+            service: serviceLabel || "Chat en vivo",
             timestamp: now
         });
     }

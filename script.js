@@ -88,6 +88,7 @@ const dom = {
     detailOwnerLocation: document.getElementById("detail-owner-location"),
     detailOwnerBio: document.getElementById("detail-owner-bio"),
     detailSocialLinks: document.getElementById("detail-social-links"),
+    detailChatButton: document.getElementById("detail-chat-button"),
     detailAvailabilityHeading: document.getElementById("detail-availability-heading"),
     detailAvailabilityCopy: document.getElementById("detail-availability-copy"),
     detailTargetButtons: document.getElementById("detail-target-buttons"),
@@ -120,6 +121,10 @@ subscribeToBookings();
 onAuthStateChanged(auth, async (user) => {
     state.currentUser = user || null;
     updateAccountUi();
+
+    if (state.detail.serviceId) {
+        renderDetailScreen();
+    }
 
     if (!user) {
         return;
@@ -224,6 +229,7 @@ function attachEventListeners() {
     });
 
     dom.detailBookButton.addEventListener("click", confirmBooking);
+    dom.detailChatButton.addEventListener("click", handleStartChat);
 
     dom.reviewStarFilters.addEventListener("click", (event) => {
         const button = event.target.closest("[data-review-stars]");
@@ -583,6 +589,7 @@ function renderDetailScreen() {
     dom.detailAvailabilityCopy.textContent = getAvailabilityCopy(service);
 
     renderDetailSocials(service.socials);
+    renderDetailChatButton(service);
     renderDetailTargets(service, activeTarget?.key || null);
     renderDetailSlots(service, activeTarget, activeSlot?.key || null);
     renderBookingPanel(service, activeTarget, activeSlot);
@@ -603,6 +610,27 @@ function renderDetailSocials(socials) {
             ${escapeHTML(label)}
         </a>
     `).join("");
+}
+
+function renderDetailChatButton(service) {
+    const ownerUid = String(service.uid || "").trim();
+    const isOwnService = Boolean(state.currentUser && ownerUid && state.currentUser.uid === ownerUid);
+
+    dom.detailChatButton.disabled = !ownerUid || isOwnService;
+
+    if (!ownerUid) {
+        dom.detailChatButton.textContent = "Chat no disponible";
+        return;
+    }
+
+    if (isOwnService) {
+        dom.detailChatButton.textContent = "Este anuncio es tuyo";
+        return;
+    }
+
+    dom.detailChatButton.textContent = state.currentUser
+        ? "Hablar con el vendedor"
+        : "Inicia sesion para hablar";
 }
 
 function renderDetailTargets(service, activeTargetKey) {
@@ -739,6 +767,32 @@ function renderReviews(service) {
             <p>${escapeHTML(review.comment)}</p>
         </article>
     `).join("");
+}
+
+function handleStartChat() {
+    const service = getActiveService();
+    if (!service) {
+        return;
+    }
+
+    const ownerUid = String(service.uid || "").trim();
+    if (!ownerUid) {
+        showToast("Este anuncio todavia no tiene chat disponible.");
+        return;
+    }
+
+    if (!state.currentUser) {
+        openModal("auth-modal");
+        showToast("Inicia sesion para hablar con el vendedor.");
+        return;
+    }
+
+    if (state.currentUser.uid === ownerUid) {
+        showToast("No puedes abrir un chat contigo mismo desde tu propio anuncio.");
+        return;
+    }
+
+    window.location.href = buildChatUrl("contact/chat.html", ownerUid, service.ownerName, service.title);
 }
 
 async function confirmBooking() {
@@ -1099,6 +1153,20 @@ function isSlotBooked(serviceId, targetKey, slotKey) {
 
 function buildBookingKey(serviceId, targetKey, slotKey) {
     return `${serviceId}::${targetKey}::${slotKey}`;
+}
+
+function buildChatUrl(basePath, uid, name, serviceTitle) {
+    const query = new URLSearchParams({
+        uid: String(uid || "").trim(),
+        name: String(name || "Anunciante").trim() || "Anunciante"
+    });
+
+    const safeServiceTitle = String(serviceTitle || "").trim();
+    if (safeServiceTitle) {
+        query.set("service", safeServiceTitle);
+    }
+
+    return `${basePath}?${query.toString()}`;
 }
 
 function buildRatingMarkup(rating, totalReviews, includeCount = true) {

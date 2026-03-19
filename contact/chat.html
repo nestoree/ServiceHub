@@ -10,8 +10,17 @@
     <div class="container" style="margin-top: 20px;">
         <div class="chat-container">
             <div class="chat-header">
-                <a href="index.html" style="color:white; text-decoration:none;">←</a>
-                <h3 id="chat-partner-name">Chat</h3>
+                <a
+                    href="../index.html"
+                    class="chat-back-link"
+                    aria-label="Volver a la pantalla principal"
+                >
+                    ← Volver a la pantalla principal
+                </a>
+                <div class="chat-header-copy">
+                    <span class="chat-header-label">Chat privado</span>
+                    <h3 id="chat-partner-name">Chat</h3>
+                </div>
             </div>
             <div id="chat-history" class="chat-history"></div>
             <div class="chat-input-area">

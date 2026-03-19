@@ -83,11 +83,26 @@ function loadCustomerBookings(uid) {
                             <strong>Reserva registrada</strong>
                         </div>
                     </div>
+
+                    ${booking.ownerUid ? `
+                        <div class="btn-group">
+                            <button
+                                type="button"
+                                class="button button-primary btn-inline"
+                                data-open-chat="${escapeHTML(booking.ownerUid)}"
+                                data-open-name="${escapeHTML(booking.ownerName || "Anunciante")}"
+                                data-open-service="${escapeHTML(booking.serviceTitle || "Servicio")}"
+                            >
+                                Hablar con el vendedor
+                            </button>
+                        </div>
+                    ` : ""}
                 </div>
             </article>
         `).join("");
 
         attachImageFallbacks(dom.customerBookingsList);
+        attachChatOpeners(dom.customerBookingsList);
     });
 }
 
@@ -184,23 +199,21 @@ function loadMyMessages(myUid) {
                 <div class="msg-body">${escapeHTML(message.message || "")}</div>
 
                 <div class="btn-group">
-                    <button type="button" class="button button-primary btn-inline" data-open-chat="${escapeHTML(message.fromUid || "")}" data-open-name="${escapeHTML(message.fromName || "Usuario")}">Abrir chat</button>
+                    <button
+                        type="button"
+                        class="button button-primary btn-inline"
+                        data-open-chat="${escapeHTML(message.fromUid || "")}"
+                        data-open-name="${escapeHTML(message.fromName || "Usuario")}"
+                        data-open-service="${escapeHTML(message.service || "Conversación")}"
+                    >
+                        Abrir chat
+                    </button>
                     <button type="button" class="button button-soft btn-inline" data-delete-message="${escapeHTML(message.id)}">Borrar</button>
                 </div>
             </article>
         `).join("");
 
-        dom.messagesList.querySelectorAll("[data-open-chat]").forEach((button) => {
-            button.addEventListener("click", () => {
-                const uid = button.dataset.openChat;
-                const name = button.dataset.openName || "Usuario";
-                if (!uid) {
-                    return;
-                }
-
-                window.location.href = `chat.html?uid=${encodeURIComponent(uid)}&name=${encodeURIComponent(name)}`;
-            });
-        });
+        attachChatOpeners(dom.messagesList);
 
         dom.messagesList.querySelectorAll("[data-delete-message]").forEach((button) => {
             button.addEventListener("click", async () => {
@@ -215,6 +228,30 @@ function loadMyMessages(myUid) {
 
                 await remove(ref(db, `messages/${myUid}/${messageId}`));
             });
+        });
+    });
+}
+
+function attachChatOpeners(scope) {
+    scope.querySelectorAll("[data-open-chat]").forEach((button) => {
+        button.addEventListener("click", () => {
+            const uid = button.dataset.openChat;
+            const name = button.dataset.openName || "Usuario";
+            const service = button.dataset.openService || "";
+            if (!uid) {
+                return;
+            }
+
+            const query = new URLSearchParams({
+                uid,
+                name
+            });
+
+            if (service) {
+                query.set("service", service);
+            }
+
+            window.location.href = `chat.html?${query.toString()}`;
         });
     });
 }

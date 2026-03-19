@@ -769,7 +769,7 @@ textarea {
     width: calc(100% + 32px);
     height: calc(100% + 32px);
     object-fit: cover;
-    filter: blur(12px) saturate(1.12);
+    filter: blur(2.3px) saturate(1.12);
     transform: scale(1.05);
 }
 
@@ -861,6 +861,11 @@ textarea {
     background: rgba(255, 255, 255, 0.72);
     color: var(--ink);
     font-weight: 700;
+}
+
+.detail-chat-button {
+    width: 100%;
+    margin-top: 1rem;
 }
 
 .choice-grid {

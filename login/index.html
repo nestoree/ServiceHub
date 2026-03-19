@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso | ServiceHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="background-orb orb-one" aria-hidden="true"></div>
+    <div class="background-orb orb-two" aria-hidden="true"></div>
+    <div class="background-orb orb-three" aria-hidden="true"></div>
+
+    <main class="login-shell">
+        <section class="glass-card login-intro">
+            <div class="brand-lockup">
+                <strong>ServiceHub</strong>
+                <span>Anuncios para tareas cotidianas, bienestar y escapadas</span>
+            </div>
+
+            <p class="eyebrow">Acceso obligatorio</p>
+            <h1>Inicia sesión para entrar en toda la plataforma.</h1>
+            <p class="intro-copy">
+                Desde aquí puedes crear tu cuenta o acceder a una existente. Sin una sesión iniciada
+                no se puede entrar a la portada, al perfil, a la publicación de anuncios ni a los chats.
+            </p>
+
+            <div class="feature-list">
+                <article class="feature-card">
+                    <strong>Explora y contrata</strong>
+                    <span>Consulta servicios, disponibilidad, reseñas y reservas desde una sola cuenta.</span>
+                </article>
+
+                <article class="feature-card">
+                    <strong>Publica tus anuncios</strong>
+                    <span>Crea servicios con horarios reservables y reaprovecha tu perfil en cada anuncio.</span>
+                </article>
+
+                <article class="feature-card">
+                    <strong>Sigue la actividad</strong>
+                    <span>Revisa conversaciones, contrataciones y mensajes no leídos en tiempo real.</span>
+                </article>
+            </div>
+        </section>
+
+        <section class="glass-card auth-panel">
+            <div class="auth-switch" aria-label="Cambiar modo de acceso">
+                <button id="switch-login" class="switch-button is-active" type="button">Iniciar sesión</button>
+                <button id="switch-register" class="switch-button" type="button">Crear cuenta</button>
+            </div>
+
+            <p id="auth-mode-label" class="eyebrow">Acceso</p>
+            <h2 id="auth-title">Vuelve a entrar en ServiceHub</h2>
+            <p id="auth-copy" class="auth-copy">
+                Usa tu correo y contraseña para abrir la plataforma y continuar donde lo dejaste.
+            </p>
+
+            <form id="auth-form" class="auth-form">
+                <div id="register-name-grid" class="name-grid hidden">
+                    <label class="input-group">
+                        <span>Nombre</span>
+                        <input id="auth-first-name" type="text" autocomplete="given-name" placeholder="Tu nombre">
+                    </label>
+
+                    <label class="input-group">
+                        <span>1er apellido</span>
+                        <input id="auth-last-name" type="text" autocomplete="family-name" placeholder="Tu primer apellido">
+                    </label>
+                </div>
+
+                <label class="input-group">
+                    <span>Correo electrónico</span>
+                    <input id="auth-email" type="email" autocomplete="email" placeholder="tu@correo.com">
+                </label>
+
+                <label class="input-group">
+                    <span>Contraseña</span>
+                    <input id="auth-password" type="password" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+                </label>
+
+                <label id="confirm-password-group" class="input-group hidden">
+                    <span>Confirmación de contraseña</span>
+                    <input id="auth-password-confirm" type="password" autocomplete="new-password" placeholder="Repite la contraseña">
+                </label>
+
+                <p id="auth-feedback" class="auth-feedback hidden" role="status" aria-live="polite"></p>
+
+                <button id="auth-submit" class="submit-button" type="submit">Iniciar sesión</button>
+            </form>
+        </section>
+    </main>
+
+    <script type="module" src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="../particles-config.js"></script>
+</body>
+</html>

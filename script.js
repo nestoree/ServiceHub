@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -31,9 +31,11 @@ const IMG_DEFAULT_SERVICE = "img/serv.png";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const LOGIN_PATH = "login/index.html";
 
 const state = {
     currentUser: null,
+    unreadMessages: 0,
     rawServices: {},
     rawUsers: {},
     services: [],
@@ -59,13 +61,11 @@ const dom = {
     heroPublish: document.getElementById("hero-publish"),
     heroExplore: document.getElementById("hero-explore"),
     accountTrigger: document.getElementById("account-trigger"),
+    accountTriggerLabel: document.getElementById("account-trigger-label"),
+    accountTriggerBadge: document.getElementById("account-trigger-badge"),
     accountWrap: document.querySelector(".account-wrap"),
     accountMenu: document.getElementById("account-menu"),
     logoutAction: document.getElementById("logout-action"),
-    authSubmit: document.getElementById("auth-submit"),
-    fullName: document.getElementById("full-name"),
-    email: document.getElementById("email"),
-    password: document.getElementById("password"),
     searchInput: document.getElementById("search-input"),
     categoryFilters: document.getElementById("category-filters"),
     categorySummary: document.getElementById("category-summary"),
@@ -112,22 +112,31 @@ const dom = {
 };
 
 let toastTimer = null;
+let protectedSubscriptions = [];
 
 attachEventListeners();
-subscribeToUsers();
-subscribeToServices();
-subscribeToBookings();
 
 onAuthStateChanged(auth, async (user) => {
     state.currentUser = user || null;
+
+    clearProtectedSubscriptions();
+    state.unreadMessages = 0;
     updateAccountUi();
+
+    if (!user) {
+        redirectToLogin();
+        return;
+    }
+
+    protectedSubscriptions = [
+        subscribeToUsers(),
+        subscribeToServices(),
+        subscribeToBookings(),
+        subscribeToUnreadMessages(user.uid)
+    ].filter(Boolean);
 
     if (state.detail.serviceId) {
         renderDetailScreen();
-    }
-
-    if (!user) {
-        return;
     }
 
     try {
@@ -160,7 +169,7 @@ function attachEventListeners() {
         if (state.currentUser) {
             toggleAccountMenu();
         } else {
-            openModal("auth-modal");
+            redirectToLogin();
         }
     });
 
@@ -168,13 +177,11 @@ function attachEventListeners() {
         try {
             await signOut(auth);
             toggleAccountMenu(false);
-            showToast("Sesión cerrada. Puedes seguir explorando anuncios.");
+            window.location.href = LOGIN_PATH;
         } catch (error) {
             showToast(getFriendlyError(error));
         }
     });
-
-    dom.authSubmit.addEventListener("click", handleAuthSubmit);
 
     dom.searchInput.addEventListener("input", (event) => {
         state.filters.query = event.target.value.trim();
@@ -246,18 +253,6 @@ function attachEventListeners() {
         renderDetailScreen();
     });
 
-    document.querySelectorAll("[data-close]").forEach((button) => {
-        button.addEventListener("click", () => closeModal(button.dataset.close));
-    });
-
-    document.querySelectorAll(".modal").forEach((modal) => {
-        modal.addEventListener("click", (event) => {
-            if (event.target === modal) {
-                closeModal(modal.id);
-            }
-        });
-    });
-
     document.addEventListener("click", (event) => {
         if (!dom.accountWrap.contains(event.target)) {
             toggleAccountMenu(false);
@@ -266,21 +261,20 @@ function attachEventListeners() {
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
-            closeModal("auth-modal");
             toggleAccountMenu(false);
         }
     });
 }
 
 function subscribeToUsers() {
-    onValue(ref(db, "users"), (snapshot) => {
+    return onValue(ref(db, "users"), (snapshot) => {
         state.rawUsers = snapshot.val() || {};
         rebuildServices();
     });
 }
 
 function subscribeToServices() {
-    onValue(ref(db, "services"), (snapshot) => {
+    return onValue(ref(db, "services"), (snapshot) => {
         state.rawServices = snapshot.val() || {};
         rebuildServices();
     }, () => {
@@ -289,7 +283,7 @@ function subscribeToServices() {
 }
 
 function subscribeToBookings() {
-    onValue(ref(db, "bookingLocks"), (snapshot) => {
+    return onValue(ref(db, "bookingLocks"), (snapshot) => {
         const rawBookings = snapshot.val() || {};
         const nextBookings = new Set();
 
@@ -312,60 +306,45 @@ function subscribeToBookings() {
     });
 }
 
-async function handleAuthSubmit() {
-    const fullName = dom.fullName.value.trim();
-    const email = dom.email.value.trim();
-    const password = dom.password.value.trim();
-
-    if (!email || !password) {
-        showToast("Escribe tu correo y tu contraseña para continuar.");
-        return;
-    }
-
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        closeModal("auth-modal");
-        showToast("Has iniciado sesión correctamente.");
-        return;
-    } catch (error) {
-        if (!fullName) {
-            showToast("Si quieres crear una cuenta nueva, añade también tu nombre.");
-            return;
-        }
-    }
-
-    try {
-        const credentials = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(credentials.user, { displayName: fullName });
-        await update(ref(db, `users/${credentials.user.uid}`), {
-            name: fullName,
-            photo: ""
-        });
-        closeModal("auth-modal");
-        showToast("Cuenta creada. Ya puedes publicar tu anuncio.");
-    } catch (error) {
-        showToast(getFriendlyError(error));
-    }
-}
-
 function handlePublishIntent() {
-    if (!state.currentUser) {
-        openModal("auth-modal");
-        showToast("Necesitas acceso para publicar anuncios.");
-        return;
-    }
-
     window.location.href = "serv/index.html";
 }
 
 function updateAccountUi() {
     if (!state.currentUser) {
-        dom.accountTrigger.textContent = "Entrar";
+        dom.accountTriggerLabel.textContent = "Entrar";
+        dom.accountTriggerBadge.classList.add("hidden");
+        dom.accountTriggerBadge.textContent = "0";
+        dom.accountTrigger.setAttribute("aria-label", "Entrar");
         toggleAccountMenu(false);
         return;
     }
 
-    dom.accountTrigger.textContent = formatName(state.currentUser.displayName || state.currentUser.email || "Mi cuenta");
+    const displayName = formatName(state.currentUser.displayName || state.currentUser.email || "Mi cuenta");
+    dom.accountTriggerLabel.textContent = displayName;
+
+    if (state.unreadMessages > 0) {
+        const badgeLabel = state.unreadMessages > 99 ? "99+" : String(state.unreadMessages);
+        dom.accountTriggerBadge.textContent = badgeLabel;
+        dom.accountTriggerBadge.classList.remove("hidden");
+        dom.accountTrigger.setAttribute("aria-label", `${displayName}. ${state.unreadMessages} mensajes sin leer.`);
+        return;
+    }
+
+    dom.accountTriggerBadge.classList.add("hidden");
+    dom.accountTriggerBadge.textContent = "0";
+    dom.accountTrigger.setAttribute("aria-label", displayName);
+}
+
+function subscribeToUnreadMessages(uid) {
+    return onValue(ref(db, `messages/${uid}`), (snapshot) => {
+        const messages = Object.values(snapshot.val() || {});
+        state.unreadMessages = messages.filter((message) => message && message.read === false).length;
+        updateAccountUi();
+    }, () => {
+        state.unreadMessages = 0;
+        updateAccountUi();
+    });
 }
 
 function rebuildServices() {
@@ -782,8 +761,7 @@ function handleStartChat() {
     }
 
     if (!state.currentUser) {
-        openModal("auth-modal");
-        showToast("Inicia sesion para hablar con el vendedor.");
+        redirectToLogin();
         return;
     }
 
@@ -1383,20 +1361,6 @@ function capitalize(value) {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function openModal(id) {
-    document.getElementById(id)?.classList.remove("hidden");
-    document.body.classList.add("modal-open");
-}
-
-function closeModal(id) {
-    document.getElementById(id)?.classList.add("hidden");
-    dom.password.value = "";
-
-    if (document.querySelectorAll(".modal:not(.hidden)").length === 0) {
-        document.body.classList.remove("modal-open");
-    }
-}
-
 function toggleAccountMenu(forceState) {
     const shouldShow = typeof forceState === "boolean"
         ? forceState
@@ -1415,6 +1379,25 @@ function resetBookingFields() {
     dom.bookingCustomerPhone.value = "";
     dom.bookingCustomerAddress.value = "";
     dom.bookingCustomerNotes.value = "";
+}
+
+function clearProtectedSubscriptions() {
+    protectedSubscriptions.forEach((stop) => {
+        if (typeof stop === "function") {
+            stop();
+        }
+    });
+
+    protectedSubscriptions = [];
+}
+
+function buildLoginUrl() {
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    return `${LOGIN_PATH}?next=${encodeURIComponent(next)}`;
+}
+
+function redirectToLogin() {
+    window.location.href = buildLoginUrl();
 }
 
 function showToast(message) {

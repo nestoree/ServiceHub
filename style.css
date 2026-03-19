@@ -298,6 +298,26 @@ textarea {
     z-index: 4;
 }
 
+.account-trigger-badge {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #e53935;
+    color: white;
+    font-size: 0.74rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 10px 18px rgba(229, 57, 53, 0.28);
+}
+
 .account-menu {
     position: absolute;
     top: calc(100% + 10px);

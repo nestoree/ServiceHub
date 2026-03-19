@@ -25,7 +25,10 @@
                 <button id="publish-cta" class="button button-primary" type="button">Publicar anuncio</button>
 
                 <div class="account-wrap">
-                    <button id="account-trigger" class="button button-soft" type="button">Entrar</button>
+                    <button id="account-trigger" class="button button-soft" type="button">
+                        <span id="account-trigger-label">Entrar</span>
+                        <span id="account-trigger-badge" class="account-trigger-badge hidden" aria-hidden="true">0</span>
+                    </button>
 
                     <div id="account-menu" class="account-menu hidden">
                         <a href="serv/index.html">Nuevo anuncio</a>
@@ -228,25 +231,6 @@
                 </article>
             </section>
         </main>
-    </div>
-
-    <div id="auth-modal" class="modal hidden" aria-hidden="true">
-        <div class="modal-panel glass-panel modal-auth">
-            <button class="modal-close" data-close="auth-modal" type="button" aria-label="Cerrar acceso">Cerrar</button>
-            <p class="section-label">Acceso para anunciantes</p>
-            <h3>Inicia sesión o crea tu cuenta</h3>
-            <p class="modal-text">
-                Necesitas acceso para publicar y editar tus propios anuncios. Si el correo no existe todavía,
-                puedes crear la cuenta desde aquí.
-            </p>
-
-            <div class="form-stack">
-                <input type="text" id="full-name" placeholder="Tu nombre visible">
-                <input type="email" id="email" placeholder="Correo electrónico">
-                <input type="password" id="password" placeholder="Contraseña">
-                <button id="auth-submit" class="button button-primary" type="button">Entrar o registrarme</button>
-            </div>
-        </div>
     </div>
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>

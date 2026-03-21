@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, push, onValue, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDBbStIV1FTMfoGza12KoqstmBj_9sYpxo",
@@ -15,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const LOGIN_PATH = "../login/index.html";
 
 const urlParams = new URLSearchParams(window.location.search);
 const otherUid = urlParams.get('uid');
@@ -32,8 +33,9 @@ onAuthStateChanged(auth, (user) => {
         // ID de sala única (alfabético para que ambos entren a la misma)
         chatId = myUid < otherUid ? `${myUid}_${otherUid}` : `${otherUid}_${myUid}`;
         loadMessages();
+        markConversationAsRead();
     } else if (!user) {
-        window.location.href = "../index.html";
+        redirectToLogin();
     }
 });
 
@@ -63,6 +65,8 @@ function loadMessages() {
             });
             history.scrollTop = history.scrollHeight;
         }
+
+        markConversationAsRead();
     });
 }
 
@@ -88,9 +92,35 @@ async function sendMessage() {
             fromUid: myUid,
             message: "Nuevo mensaje de chat: " + text.substring(0, 30) + "...",
             service: serviceLabel || "Chat en vivo",
-            timestamp: now
+            timestamp: now,
+            read: false
         });
     }
+}
+
+async function markConversationAsRead() {
+    if (!myUid || !otherUid) {
+        return;
+    }
+
+    try {
+        await update(ref(db, `messages/${myUid}/${otherUid}`), {
+            read: true
+        });
+    } catch (error) {
+        if (!String(error?.code || "").includes("permission-denied")) {
+            console.error("No se pudo marcar la conversación como leída:", error);
+        }
+    }
+}
+
+function buildLoginUrl() {
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    return `${LOGIN_PATH}?next=${encodeURIComponent(next)}`;
+}
+
+function redirectToLogin() {
+    window.location.href = buildLoginUrl();
 }
 
 document.getElementById('btn-send-chat').onclick = sendMessage;

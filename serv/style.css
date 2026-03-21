@@ -378,6 +378,10 @@ textarea {
     margin-top: 1rem;
 }
 
+.editor-helper {
+    margin: 0;
+}
+
 .schedule-panel {
     margin-top: 1rem;
 }
@@ -478,6 +482,11 @@ textarea {
 
 .schedule-summary {
     min-height: 54px;
+}
+
+.drafted-slot-list .summary-card,
+.schedule-summary .summary-card {
+    justify-content: flex-start;
 }
 
 .summary-card {

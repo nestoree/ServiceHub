@@ -15,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const LOGIN_PATH = "../login/index.html";
 
 const state = {
     currentUser: null,
@@ -40,7 +41,7 @@ const dom = {
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
-        window.location.href = "../index.html";
+        redirectToLogin();
         return;
     }
 
@@ -177,4 +178,13 @@ function formatName(name) {
     }
 
     return `${parts[0]} ${parts[1][0]}.`;
+}
+
+function buildLoginUrl() {
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    return `${LOGIN_PATH}?next=${encodeURIComponent(next)}`;
+}
+
+function redirectToLogin() {
+    window.location.href = buildLoginUrl();
 }

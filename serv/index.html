@@ -14,7 +14,6 @@
     <div class="publish-shell">
         <header class="publish-header glass-panel">
             <a href="../index.html" class="brand" aria-label="Volver al inicio">
-                <span class="brand-mark"></span>
                 <span class="brand-copy">
                     <strong>ServiceHub</strong>
                     <small>Volver a la pantalla principal</small>
@@ -77,6 +76,7 @@
                                     <option value="Cuidados">Cuidados</option>
                                     <option value="Compras">Compras</option>
                                     <option value="Excursiones">Excursiones</option>
+                                    <option value="Otros">Otros</option>
                                 </select>
                             </label>
 
@@ -210,7 +210,13 @@
                         </div>
 
                         <div class="sub-block">
-                            <p class="sub-title">3. Tipo de horario</p>
+                            <p class="sub-title">3. Día o fecha que estás editando</p>
+                            <div id="availability-editor-targets" class="target-grid"></div>
+                            <p id="availability-editor-status" class="helper-text editor-helper">Selecciona un día para empezar a cargar sus horarios.</p>
+                        </div>
+
+                        <div class="sub-block">
+                            <p class="sub-title">4. Tipo de horario</p>
                             <div id="schedule-type-selector" class="segmented-control">
                                 <button type="button" class="segment is-active" data-schedule-type="specific">Hora concreta</button>
                                 <button type="button" class="segment" data-schedule-type="range">Tramo fijo</button>
@@ -218,7 +224,7 @@
                         </div>
 
                         <div id="specific-time-panel" class="schedule-panel">
-                            <p class="helper-text">Escribe una hora en formato 24h, pulsa añadir y repite tantas veces como necesites. Cuando termines, pulsa terminar.</p>
+                            <p class="helper-text">Escribe una hora en formato 24h para el día que estés editando, pulsa añadir y repite tantas veces como necesites. Cuando termines ese día, pulsa terminar.</p>
                             <div class="time-builder">
                                 <label class="input-group">
                                     <span>Hora personalizada</span>
@@ -230,7 +236,7 @@
                         </div>
 
                         <div id="range-time-panel" class="schedule-panel hidden">
-                            <p class="helper-text">Haz doble clic sobre cada campo para editar manualmente inicio y fin en 24h, luego añade el tramo y termina cuando ya no quieras sumar más.</p>
+                            <p class="helper-text">Haz doble clic sobre cada campo para editar manualmente inicio y fin en 24h, luego añade el tramo al día activo y termina cuando ya no quieras sumar más para ese día.</p>
                             <div class="time-builder range-builder">
                                 <label class="input-group">
                                     <span>Inicio del tramo</span>
@@ -246,12 +252,12 @@
                         </div>
 
                         <div class="sub-block">
-                            <p class="sub-title">4. Resumen de horarios preparados</p>
+                            <p class="sub-title">5. Horarios preparados para el día activo</p>
                             <div id="drafted-slots" class="drafted-slot-list"></div>
                         </div>
 
                         <div class="sub-block">
-                            <p class="sub-title">5. Resumen de disponibilidad final</p>
+                            <p class="sub-title">6. Resumen de disponibilidad final</p>
                             <div id="schedule-summary" class="schedule-summary"></div>
                         </div>
                     </section>

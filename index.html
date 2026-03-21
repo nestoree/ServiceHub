@@ -15,6 +15,7 @@
     <div class="shell">
         <header class="topbar glass-panel">
             <a href="index.html" class="brand" data-go-home aria-label="Volver a la pantalla principal">
+                <span class="brand-logo-slot" aria-hidden="true"></span>
                 <span class="brand-copy">
                     <strong>ServiceHub</strong>
                     <small>Anuncios para tareas cotidianas, bienestar y escapadas</small>
@@ -42,38 +43,9 @@
 
         <main class="page-stack">
             <section id="home-screen" class="screen">
-                <section class="hero glass-panel">
-                    <div class="hero-copy">
-                        <h1>Encuentra a quien pueda hacerlo por ti.</h1>
-                        <p class="hero-text">
-                            Busca limpieza, yoga, cocina, compras, excursiones o cuidados en una sola app.
-                            Al entrar en cada anuncio verás especificaciones, redes del anunciante, puntuación,
-                            reseñas, disponibilidad y horas reservables que dejan de ser clicables cuando ya se
-                            han cogido.
-                        </p>
-
-                        <div class="hero-actions">
-                            <button id="hero-publish" class="button button-primary" type="button">Quiero anunciarme</button>
-                            <button id="hero-explore" class="button button-soft" type="button">Ver servicios</button>
-                        </div>
-                    </div>
-
-                    <div class="hero-stats">
-                        <article class="stat-card">
-                            <strong id="service-count">0</strong>
-                            <span>Anuncios visibles</span>
-                        </article>
-
-                        <article class="stat-card">
-                            <strong id="category-count">0</strong>
-                            <span>Categorías activas</span>
-                        </article>
-                    </div>
-                </section>
-
                 <section class="toolbar glass-panel">
                     <div class="toolbar-main">
-                        <label class="search-field" for="search-input">
+                        <label class="search-field toolbar-search" for="search-input">
                             <span class="sr-only">Buscar servicios</span>
                             <input id="search-input" type="search" placeholder="¿Qué estamos buscando?">
                         </label>
@@ -90,24 +62,6 @@
                             <button class="view-button" data-view="list" type="button">Listado</button>
                         </div>
                     </div>
-                </section>
-
-                <section class="discovery-strip">
-                    <article class="discover-card glass-panel">
-                        <p class="section-label">Cotidiano y más allá</p>
-                        <h2>Descubre también lo que no ibas buscando</h2>
-                        <p class="discover-text">
-                            La portada mezcla tareas diarias con bienestar y ocio para que la persona que entra
-                            termine encontrando soluciones y planes que no tenía previstos.
-                        </p>
-                        <div id="category-summary" class="summary-chip-row"></div>
-                    </article>
-
-                    <article class="discover-card glass-panel">
-                        <p class="section-label">Próximos huecos</p>
-                        <h2>Agenda abierta ahora</h2>
-                        <div id="spotlight-list" class="spotlight-list"></div>
-                    </article>
                 </section>
 
                 <section class="results-section">

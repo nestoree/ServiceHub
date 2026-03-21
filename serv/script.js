@@ -25,6 +25,7 @@ const WEEKDAY_TARGETS = [
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const LOGIN_PATH = "../login/index.html";
 
 const state = {
     currentUser: null,
@@ -44,8 +45,9 @@ const state = {
     availabilityMode: "weekly",
     scheduleType: "specific",
     selectedTargets: new Set(["lunes"]),
-    draftedSlots: [],
-    timeBlockFinished: false,
+    activeDraftTarget: "lunes",
+    draftedSlotsByTarget: {},
+    finishedTargets: new Set(),
     media: {
         serviceUrl: "",
         serviceFileData: "",
@@ -75,6 +77,8 @@ const dom = {
     ownerPhotoPreview: document.getElementById("owner-photo-preview"),
     availabilityModeSelector: document.getElementById("availability-mode-selector"),
     availabilityTargets: document.getElementById("availability-targets"),
+    availabilityEditorTargets: document.getElementById("availability-editor-targets"),
+    availabilityEditorStatus: document.getElementById("availability-editor-status"),
     scheduleTypeSelector: document.getElementById("schedule-type-selector"),
     specificTimePanel: document.getElementById("specific-time-panel"),
     specificTimeInput: document.getElementById("specific-time-input"),
@@ -92,6 +96,7 @@ const dom = {
 };
 
 renderTargetSelector();
+renderEditorTargetSelector();
 renderDraftedSlots();
 renderScheduleSummary();
 updateModeUi();
@@ -102,9 +107,7 @@ onAuthStateChanged(auth, async (user) => {
     state.currentUser = user || null;
 
     if (!user) {
-        dom.authStatus.textContent = "Necesitas iniciar sesión en la portada para publicar";
-        dom.submitButton.disabled = true;
-        dom.submitButton.textContent = "Inicia sesión para publicar";
+        redirectToLogin();
         return;
     }
 
@@ -132,9 +135,15 @@ dom.availabilityModeSelector.addEventListener("click", (event) => {
 
     state.availabilityMode = button.dataset.availabilityMode;
     state.selectedTargets = state.availabilityMode === "daily" ? new Set(["daily"]) : new Set();
+    state.activeDraftTarget = state.availabilityMode === "daily" ? "daily" : null;
+    state.draftedSlotsByTarget = {};
+    state.finishedTargets = new Set();
     renderAvailabilityModeButtons();
     renderTargetSelector();
+    renderEditorTargetSelector();
+    renderDraftedSlots();
     renderScheduleSummary();
+    showFeedback("Has cambiado la recurrencia. Vuelve a definir los horarios de cada día.", "success");
 });
 
 dom.scheduleTypeSelector.addEventListener("click", (event) => {
@@ -144,13 +153,14 @@ dom.scheduleTypeSelector.addEventListener("click", (event) => {
     }
 
     state.scheduleType = button.dataset.scheduleType;
-    state.draftedSlots = [];
-    state.timeBlockFinished = false;
+    state.draftedSlotsByTarget = {};
+    state.finishedTargets = new Set();
     renderScheduleTypeButtons();
     updateScheduleTypeUi();
+    renderEditorTargetSelector();
     renderDraftedSlots();
     renderScheduleSummary();
-    showFeedback("Has cambiado el tipo de horario. Añade de nuevo los huecos de tiempo.", "success");
+    showFeedback("Has cambiado el tipo de horario. Añade de nuevo los huecos para cada día.", "success");
 });
 
 dom.availabilityTargets.addEventListener("click", (event) => {
@@ -160,14 +170,30 @@ dom.availabilityTargets.addEventListener("click", (event) => {
     }
 
     const key = button.dataset.targetKey;
-    if (state.selectedTargets.has(key)) {
+    const wasSelected = state.selectedTargets.has(key);
+    if (wasSelected) {
         state.selectedTargets.delete(key);
     } else {
         state.selectedTargets.add(key);
+        state.activeDraftTarget = key;
     }
 
+    syncDraftStateWithSelection();
     renderTargetSelector();
+    renderEditorTargetSelector();
+    renderDraftedSlots();
     renderScheduleSummary();
+});
+
+dom.availabilityEditorTargets.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-editor-target-key]");
+    if (!button) {
+        return;
+    }
+
+    state.activeDraftTarget = button.dataset.editorTargetKey;
+    renderEditorTargetSelector();
+    renderDraftedSlots();
 });
 
 dom.serviceImageUrl.addEventListener("input", () => {
@@ -257,18 +283,28 @@ dom.draftedSlots.addEventListener("click", (event) => {
         return;
     }
 
-    state.draftedSlots = state.draftedSlots.filter((slot) => slot.key !== removeButton.dataset.removeSlot);
-    state.timeBlockFinished = false;
+    const targetKey = String(removeButton.dataset.removeTarget || "").trim();
+    const slotKey = String(removeButton.dataset.removeSlot || "").trim();
+    const nextSlots = getDraftedSlotsForTarget(targetKey).filter((slot) => slot.key !== slotKey);
+
+    if (nextSlots.length) {
+        state.draftedSlotsByTarget[targetKey] = nextSlots;
+    } else {
+        delete state.draftedSlotsByTarget[targetKey];
+    }
+
+    state.finishedTargets.delete(targetKey);
+    renderEditorTargetSelector();
     renderDraftedSlots();
     renderScheduleSummary();
-    showFeedback("Horario eliminado. Pulsa Terminar de nuevo cuando acabes.", "success");
+    showFeedback(`Horario eliminado de ${resolveTargetLabel(targetKey)}. Pulsa Terminar de nuevo cuando acabes.`, "success");
 });
 
 dom.publishForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!state.currentUser) {
-        showFeedback("Necesitas iniciar sesión desde la portada antes de publicar.", "error");
+        redirectToLogin();
         return;
     }
 
@@ -318,13 +354,16 @@ dom.publishForm.addEventListener("submit", async (event) => {
         return;
     }
 
-    if (!state.draftedSlots.length) {
-        showFeedback("Añade al menos una hora concreta o un tramo fijo.", "error");
+    const selectedTargets = getSelectedTargetObjects();
+    const targetsWithoutSlots = selectedTargets.filter((target) => getDraftedSlotsForTarget(target.key).length === 0);
+    if (targetsWithoutSlots.length) {
+        showFeedback(`Añade al menos un horario en: ${targetsWithoutSlots.map((target) => target.label).join(", ")}.`, "error");
         return;
     }
 
-    if (!state.timeBlockFinished) {
-        showFeedback("Pulsa Terminar en el bloque horario antes de publicar.", "error");
+    const unfinishedTargets = selectedTargets.filter((target) => !state.finishedTargets.has(target.key));
+    if (unfinishedTargets.length) {
+        showFeedback(`Pulsa Terminar en: ${unfinishedTargets.map((target) => target.label).join(", ")} antes de publicar.`, "error");
         return;
     }
 
@@ -458,6 +497,36 @@ function renderTargetSelector() {
     `).join("");
 }
 
+function renderEditorTargetSelector() {
+    syncDraftStateWithSelection();
+
+    const targets = getSelectedTargetObjects();
+    if (!targets.length) {
+        dom.availabilityEditorTargets.innerHTML = `<span class="summary-card">Selecciona primero un día o una fecha.</span>`;
+        dom.availabilityEditorStatus.textContent = "Aún no hay ningún día activo para editar horarios.";
+        return;
+    }
+
+    dom.availabilityEditorTargets.innerHTML = targets.map((target) => `
+        <button
+            type="button"
+            class="target-button ${state.activeDraftTarget === target.key ? "is-active" : ""}"
+            data-editor-target-key="${escapeHTML(target.key)}"
+        >
+            ${escapeHTML(target.label)}
+        </button>
+    `).join("");
+
+    const activeTarget = getActiveDraftTargetObject();
+    const draftedCount = activeTarget ? getDraftedSlotsForTarget(activeTarget.key).length : 0;
+    const finished = activeTarget ? state.finishedTargets.has(activeTarget.key) : false;
+    const draftedLabel = draftedCount === 1 ? "1 horario preparado" : `${draftedCount} horarios preparados`;
+
+    dom.availabilityEditorStatus.textContent = activeTarget
+        ? `${activeTarget.label}: ${draftedCount ? draftedLabel : "sin horarios todavía"} · ${finished ? "terminado" : "pendiente de pulsar Terminar"}.`
+        : "Aún no hay ningún día activo para editar horarios.";
+}
+
 function getAvailableTargets() {
     if (state.availabilityMode === "monthly") {
         return Array.from({ length: 31 }, (_, index) => {
@@ -474,52 +543,100 @@ function getAvailableTargets() {
 }
 
 function addDraftedSlot(slot) {
-    if (state.draftedSlots.some((existingSlot) => existingSlot.key === slot.key)) {
+    const activeTarget = getActiveDraftTargetObject();
+    if (!activeTarget) {
+        showFeedback("Selecciona antes un día o una fecha para cargar sus horarios.", "error");
+        return;
+    }
+
+    const targetKey = activeTarget.key;
+    const targetSlots = getDraftedSlotsForTarget(targetKey);
+    if (targetSlots.some((existingSlot) => existingSlot.key === slot.key)) {
         showFeedback("Ese horario ya estaba añadido.", "error");
         return;
     }
 
-    state.draftedSlots.push(slot);
-    state.timeBlockFinished = false;
+    state.draftedSlotsByTarget[targetKey] = [...targetSlots, slot];
+    state.finishedTargets.delete(targetKey);
+    renderEditorTargetSelector();
     renderDraftedSlots();
     renderScheduleSummary();
-    showFeedback("Horario añadido. Puedes seguir sumando más o pulsar Terminar.", "success");
+    showFeedback(`Horario añadido a ${activeTarget.label}. Puedes seguir sumando más o pulsar Terminar.`, "success");
 }
 
 function finishDrafting(message) {
-    if (!state.draftedSlots.length) {
+    const activeTarget = getActiveDraftTargetObject();
+    if (!activeTarget) {
+        showFeedback("Selecciona antes un día o una fecha para terminar su horario.", "error");
+        return;
+    }
+
+    if (!getDraftedSlotsForTarget(activeTarget.key).length) {
         showFeedback("Añade al menos un horario antes de pulsar Terminar.", "error");
         return;
     }
 
-    state.timeBlockFinished = true;
+    state.finishedTargets.add(activeTarget.key);
+    renderEditorTargetSelector();
     renderScheduleSummary();
-    showFeedback(message, "success");
+    showFeedback(`${message} Día editado: ${activeTarget.label}.`, "success");
 }
 
 function renderDraftedSlots() {
-    if (!state.draftedSlots.length) {
-        dom.draftedSlots.innerHTML = `<span class="summary-card">Todavía no has añadido horas ni tramos.</span>`;
+    const activeTarget = getActiveDraftTargetObject();
+    if (!activeTarget) {
+        dom.draftedSlots.innerHTML = `<span class="summary-card">Selecciona primero un día o una fecha.</span>`;
         return;
     }
 
-    dom.draftedSlots.innerHTML = state.draftedSlots.map((slot) => `
+    const draftedSlots = getDraftedSlotsForTarget(activeTarget.key);
+    if (!draftedSlots.length) {
+        dom.draftedSlots.innerHTML = `<span class="summary-card">Todavía no has añadido horas ni tramos para ${escapeHTML(activeTarget.label)}.</span>`;
+        return;
+    }
+
+    dom.draftedSlots.innerHTML = draftedSlots.map((slot) => `
         <div class="drafted-chip">
-            <span>${slot.label}</span>
-            <button type="button" data-remove-slot="${slot.key}" aria-label="Eliminar ${slot.label}">×</button>
+            <span>${escapeHTML(slot.label)}</span>
+            <button
+                type="button"
+                data-remove-slot="${escapeHTML(slot.key)}"
+                data-remove-target="${escapeHTML(activeTarget.key)}"
+                aria-label="Eliminar ${escapeHTML(slot.label)} de ${escapeHTML(activeTarget.label)}"
+            >
+                ×
+            </button>
         </div>
     `).join("");
 }
 
 function renderScheduleSummary() {
     const targets = getSelectedTargetObjects();
-    const targetSummary = targets.length ? targets.map((target) => target.label).join(", ") : "Sin objetivos de disponibilidad";
-    const slotSummary = state.draftedSlots.length ? state.draftedSlots.map((slot) => slot.label).join(", ") : "Sin horarios preparados";
+    if (!targets.length) {
+        dom.scheduleSummary.innerHTML = `
+            <span class="summary-card">Sin objetivos de disponibilidad</span>
+            <span class="summary-card">Selecciona un día o una fecha para empezar</span>
+        `;
+        return;
+    }
+
+    const targetCards = targets.map((target) => {
+        const draftedSlots = getDraftedSlotsForTarget(target.key);
+        const slotSummary = draftedSlots.length
+            ? draftedSlots.map((slot) => slot.label).join(", ")
+            : "Sin horarios preparados";
+        const finishedLabel = state.finishedTargets.has(target.key) ? "Terminado" : "Pendiente";
+
+        return `<span class="summary-card">${escapeHTML(target.label)}: ${escapeHTML(slotSummary)} · ${finishedLabel}</span>`;
+    }).join("");
+
+    const pendingTargets = targets
+        .filter((target) => !state.finishedTargets.has(target.key))
+        .map((target) => target.label);
 
     dom.scheduleSummary.innerHTML = `
-        <span class="summary-card">${targetSummary}</span>
-        <span class="summary-card">${slotSummary}</span>
-        <span class="summary-card">${state.timeBlockFinished ? "Horario terminado" : "Pendiente de pulsar Terminar"}</span>
+        ${targetCards}
+        <span class="summary-card">${escapeHTML(pendingTargets.length ? `Pendientes de terminar: ${pendingTargets.join(", ")}` : "Todos los días están listos para publicar")}</span>
     `;
 }
 
@@ -537,6 +654,41 @@ function getSelectedTargetObjects() {
     return targets.sort((left, right) => WEEKDAY_TARGETS.findIndex((target) => target.key === left.key) - WEEKDAY_TARGETS.findIndex((target) => target.key === right.key));
 }
 
+function syncDraftStateWithSelection() {
+    const selectedTargets = getSelectedTargetObjects();
+    const selectedKeys = new Set(selectedTargets.map((target) => target.key));
+
+    Object.keys(state.draftedSlotsByTarget).forEach((key) => {
+        if (!selectedKeys.has(key)) {
+            delete state.draftedSlotsByTarget[key];
+        }
+    });
+
+    state.finishedTargets = new Set(
+        [...state.finishedTargets].filter((key) => selectedKeys.has(key))
+    );
+
+    if (state.activeDraftTarget && selectedKeys.has(state.activeDraftTarget)) {
+        return;
+    }
+
+    state.activeDraftTarget = selectedTargets[0]?.key || null;
+}
+
+function getActiveDraftTargetObject() {
+    syncDraftStateWithSelection();
+    return getSelectedTargetObjects().find((target) => target.key === state.activeDraftTarget) || null;
+}
+
+function getDraftedSlotsForTarget(targetKey) {
+    return Array.isArray(state.draftedSlotsByTarget[targetKey]) ? state.draftedSlotsByTarget[targetKey] : [];
+}
+
+function resolveTargetLabel(targetKey) {
+    const normalizedKey = String(targetKey || "").trim();
+    return getAvailableTargets().find((target) => target.key === normalizedKey)?.label || normalizedKey || "ese día";
+}
+
 function buildSchedule() {
     return {
         mode: state.availabilityMode,
@@ -544,8 +696,8 @@ function buildSchedule() {
         targets: getSelectedTargetObjects().map((target) => ({
             key: target.key,
             label: target.label,
-            slots: state.draftedSlots.map((slot) => ({ ...slot }))
-        }))
+            slots: getDraftedSlotsForTarget(target.key).map((slot) => ({ ...slot }))
+        })).filter((target) => target.slots.length > 0)
     };
 }
 
@@ -629,6 +781,15 @@ function showFeedback(message, tone = "info") {
     dom.formFeedback.classList.remove("hidden");
 }
 
+function escapeHTML(value) {
+    return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
 function getFriendlyError(error) {
     const code = error?.code || "";
 
@@ -646,4 +807,13 @@ function formatName(name) {
     }
 
     return `${parts[0]} ${parts[1][0]}.`;
+}
+
+function buildLoginUrl() {
+    const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    return `${LOGIN_PATH}?next=${encodeURIComponent(next)}`;
+}
+
+function redirectToLogin() {
+    window.location.href = buildLoginUrl();
 }

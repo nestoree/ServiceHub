@@ -12,7 +12,7 @@ const firebaseConfig = {
     appId: "1:582717395006:web:75e4e1f5afc1fcf62cc16f"
 };
 
-const CATEGORY_OPTIONS = ["Todas", "Limpieza", "Deportes", "Cocina", "Cuidados", "Compras", "Excursiones"];
+const CATEGORY_OPTIONS = ["Todas", "Limpieza", "Deportes", "Cocina", "Cuidados", "Compras", "Excursiones", "Otros"];
 const WEEKDAY_ORDER = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
 const WEEKDAY_LABELS = {
     lunes: "Lunes",
@@ -151,8 +151,8 @@ onAuthStateChanged(auth, async (user) => {
 
 function attachEventListeners() {
     dom.publishCta.addEventListener("click", handlePublishIntent);
-    dom.heroPublish.addEventListener("click", handlePublishIntent);
-    dom.heroExplore.addEventListener("click", () => {
+    dom.heroPublish?.addEventListener("click", handlePublishIntent);
+    dom.heroExplore?.addEventListener("click", () => {
         dom.homeScreen.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
@@ -206,6 +206,24 @@ function attachEventListeners() {
     });
 
     dom.serviceFeed.addEventListener("click", (event) => {
+        const menuTrigger = event.target.closest("[data-service-menu]");
+        if (menuTrigger) {
+            event.stopPropagation();
+            toggleServiceMenu(menuTrigger.dataset.serviceMenu);
+            return;
+        }
+
+        const deleteButton = event.target.closest("[data-delete-service]");
+        if (deleteButton) {
+            event.stopPropagation();
+            handleDeleteService(deleteButton.dataset.deleteService);
+            return;
+        }
+
+        if (event.target.closest("[data-service-menu-wrap]")) {
+            return;
+        }
+
         const card = event.target.closest("[data-open-service]");
         if (!card) {
             return;
@@ -257,11 +275,16 @@ function attachEventListeners() {
         if (!dom.accountWrap.contains(event.target)) {
             toggleAccountMenu(false);
         }
+
+        if (!event.target.closest("[data-service-menu-wrap]")) {
+            closeServiceMenus();
+        }
     });
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
             toggleAccountMenu(false);
+            closeServiceMenus();
         }
     });
 }
@@ -369,9 +392,17 @@ function renderHomeScreen() {
     const filteredServices = getFilteredServices();
     const activeCategories = [...new Set(state.services.map((service) => service.category))];
 
-    dom.serviceCount.textContent = String(state.services.length);
-    dom.categoryCount.textContent = String(activeCategories.length);
-    dom.resultsCopy.textContent = filteredServices.length === 1 ? "1 anuncio listo para abrir" : `${filteredServices.length} anuncios listos para abrir`;
+    if (dom.serviceCount) {
+        dom.serviceCount.textContent = String(state.services.length);
+    }
+
+    if (dom.categoryCount) {
+        dom.categoryCount.textContent = String(activeCategories.length);
+    }
+
+    if (dom.resultsCopy) {
+        dom.resultsCopy.textContent = filteredServices.length === 1 ? "1 anuncio listo para abrir" : `${filteredServices.length} anuncios listos para abrir`;
+    }
 
     renderCategoryFilters();
     renderCategorySummary(filteredServices);
@@ -397,6 +428,10 @@ function renderCategoryFilters() {
 }
 
 function renderCategorySummary(filteredServices) {
+    if (!dom.categorySummary) {
+        return;
+    }
+
     const categories = [...new Set(filteredServices.map((service) => service.category))].slice(0, 6);
 
     if (!categories.length) {
@@ -410,6 +445,10 @@ function renderCategorySummary(filteredServices) {
 }
 
 function renderSpotlights() {
+    if (!dom.spotlightList) {
+        return;
+    }
+
     const spotlightServices = [...state.services]
         .filter((service) => countAvailableSlots(service) > 0)
         .sort((left, right) => countAvailableSlots(right) - countAvailableSlots(left))
@@ -430,7 +469,9 @@ function renderSpotlights() {
 }
 
 function renderCards(services) {
-    dom.emptyState.classList.toggle("hidden", services.length > 0);
+    if (dom.emptyState) {
+        dom.emptyState.classList.toggle("hidden", services.length > 0);
+    }
 
     if (!services.length) {
         dom.serviceFeed.innerHTML = "";
@@ -438,6 +479,7 @@ function renderCards(services) {
     }
 
     dom.serviceFeed.innerHTML = services.map((service) => {
+        const isOwner = Boolean(state.currentUser && service.uid && state.currentUser.uid === service.uid);
         const tagMarkup = service.schedule.targets.slice(0, 4).map((target) => `
             <span class="service-tag">${escapeHTML(target.label)}</span>
         `).join("");
@@ -449,6 +491,26 @@ function renderCards(services) {
         return `
             <article class="service-card" data-open-service="${escapeHTML(service.id)}" tabindex="0">
                 <div class="service-card-media">
+                    ${isOwner ? `
+                        <div class="service-owner-menu" data-service-menu-wrap>
+                            <button
+                                type="button"
+                                class="service-menu-trigger"
+                                data-service-menu="${escapeHTML(service.id)}"
+                                aria-label="Gestionar servicio"
+                                aria-haspopup="true"
+                                aria-expanded="false"
+                            >
+                                &middot;&middot;&middot;
+                            </button>
+
+                            <div class="service-menu hidden" data-service-menu-panel="${escapeHTML(service.id)}">
+                                <button type="button" class="service-menu-action" data-delete-service="${escapeHTML(service.id)}">
+                                    Eliminar servicio
+                                </button>
+                            </div>
+                        </div>
+                    ` : ""}
                     <img class="service-card-image" src="${escapeHTML(service.image)}" alt="Imagen del anuncio ${escapeHTML(service.title)}">
                     <div class="price-corner">Precio medio ${escapeHTML(service.priceLabel)}</div>
                 </div>
@@ -510,6 +572,7 @@ function openDetailScreen(serviceId) {
         return;
     }
 
+    closeServiceMenus();
     state.detail.serviceId = serviceId;
     state.detail.slotKey = null;
     state.detail.reviewStars = "all";
@@ -525,6 +588,7 @@ function openDetailScreen(serviceId) {
 }
 
 function showHomeScreen() {
+    closeServiceMenus();
     state.detail.serviceId = null;
     state.detail.targetKey = null;
     state.detail.slotKey = null;
@@ -692,6 +756,7 @@ function renderSpecGrid(service) {
         { label: "Modalidad", value: service.modeLabel },
         { label: "Disponibilidad", value: getScheduleModeLabel(service.schedule.mode) },
         { label: "Tipo de horario", value: service.scheduleTypeLabel },
+        { label: "Otros", value: service.category },
         { label: "Ubicacion", value: service.businessLocation || service.ownerLocation || "Por concretar" }
     ];
 
@@ -1372,6 +1437,61 @@ function toggleAccountMenu(forceState) {
     }
 
     dom.accountMenu.classList.toggle("hidden", !shouldShow);
+}
+
+function toggleServiceMenu(serviceId) {
+    const targetId = String(serviceId || "").trim();
+
+    dom.serviceFeed.querySelectorAll("[data-service-menu-panel]").forEach((panel) => {
+        const shouldOpen = panel.dataset.serviceMenuPanel === targetId && panel.classList.contains("hidden");
+        panel.classList.toggle("hidden", !shouldOpen);
+    });
+
+    dom.serviceFeed.querySelectorAll("[data-service-menu]").forEach((trigger) => {
+        const panel = dom.serviceFeed.querySelector(`[data-service-menu-panel="${trigger.dataset.serviceMenu}"]`);
+        const isExpanded = Boolean(panel && !panel.classList.contains("hidden"));
+        trigger.setAttribute("aria-expanded", String(isExpanded));
+    });
+}
+
+function closeServiceMenus() {
+    dom.serviceFeed.querySelectorAll("[data-service-menu-panel]").forEach((panel) => {
+        panel.classList.add("hidden");
+    });
+
+    dom.serviceFeed.querySelectorAll("[data-service-menu]").forEach((trigger) => {
+        trigger.setAttribute("aria-expanded", "false");
+    });
+}
+
+async function handleDeleteService(serviceId) {
+    const targetId = String(serviceId || "").trim();
+    const service = state.services.find((item) => item.id === targetId);
+
+    closeServiceMenus();
+
+    if (!service) {
+        showToast("No hemos podido localizar ese servicio.");
+        return;
+    }
+
+    if (!state.currentUser || state.currentUser.uid !== service.uid) {
+        showToast("Solo el propietario puede eliminar este servicio.");
+        return;
+    }
+
+    if (!window.confirm(`¿Eliminar "${service.title}"? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+
+    try {
+        await update(ref(db), {
+            [`services/${targetId}`]: null
+        });
+        showToast("Servicio eliminado correctamente.");
+    } catch (error) {
+        showToast(getFriendlyError(error));
+    }
 }
 
 function resetBookingFields() {
